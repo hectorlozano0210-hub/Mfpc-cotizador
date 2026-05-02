@@ -35,6 +35,34 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// Migration endpoint to fix text limits
+app.get('/api/migrate', async (req, res) => {
+  try {
+    const connection = await pool.getConnection();
+    let logs = [];
+    
+    try {
+      await connection.query('ALTER TABLE projects MODIFY signature LONGTEXT;');
+      await connection.query('ALTER TABLE project_activities MODIFY recipient_signature LONGTEXT;');
+      logs.push('Modified signatures to LONGTEXT');
+    } catch (e) {
+      logs.push('Signatures migration failed or already applied: ' + e.message);
+    }
+
+    try {
+      await connection.query('ALTER TABLE project_activities ADD COLUMN images LONGTEXT;');
+      logs.push('Added images column');
+    } catch (e) {
+      logs.push('Images column failed or already exists: ' + e.message);
+    }
+
+    connection.release();
+    res.json({ status: 'ok', logs });
+  } catch (error) {
+    res.status(500).json({ status: 'error', error: error.message });
+  }
+});
+
 /* ════════════════════════════════════════════════════════════
    CLIENTS API
    ════════════════════════════════════════════════════════════ */
@@ -151,7 +179,7 @@ app.get('/api/projects', async (req, res) => {
         // Map child tables back to camelCase
         items: items.map(i => ({ ...i, unitPrice: parseFloat(i.unit_price), difficultyMultiplier: parseFloat(i.difficulty_multiplier), total: parseFloat(i.total) })),
         resources: resources.map(r => ({ ...r, unitPrice: parseFloat(r.unit_price), total: parseFloat(r.total) })),
-        activities: activities.map(a => ({ ...a, estimatedHours: parseFloat(a.estimated_hours), price: parseFloat(a.price), authorizedBy: a.authorized_by, recipientName: a.recipient_name, recipientSignature: a.recipient_signature }))
+        activities: activities.map(a => ({ ...a, estimatedHours: parseFloat(a.estimated_hours), price: parseFloat(a.price), authorizedBy: a.authorized_by, recipientName: a.recipient_name, recipientSignature: a.recipient_signature, images: a.images ? JSON.parse(a.images) : [] }))
       };
     }));
     
@@ -193,8 +221,8 @@ app.post('/api/projects', async (req, res) => {
     // 4. Sync Activities
     await connection.query('DELETE FROM project_activities WHERE project_id = ?', [id]);
     if (activities && activities.length > 0) {
-      const actValues = activities.map(a => [a.id || uuid(), id, a.date, a.time, a.description, a.estimatedHours || 0, a.price || 0, a.authorizedBy, a.recipientName, a.recipientSignature]);
-      await connection.query('INSERT INTO project_activities (id, project_id, date, time, description, estimated_hours, price, authorized_by, recipient_name, recipient_signature) VALUES ?', [actValues]);
+      const actValues = activities.map(a => [a.id || uuid(), id, a.date, a.time, a.description, a.estimatedHours || 0, a.price || 0, a.authorizedBy, a.recipientName, a.recipientSignature, JSON.stringify(a.images || [])]);
+      await connection.query('INSERT INTO project_activities (id, project_id, date, time, description, estimated_hours, price, authorized_by, recipient_name, recipient_signature, images) VALUES ?', [actValues]);
     }
 
     await connection.commit();

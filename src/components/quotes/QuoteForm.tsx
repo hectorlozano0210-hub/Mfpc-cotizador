@@ -145,9 +145,22 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
       estimatedHours: 0,
       authorizedBy: '',
       price: 0,
-      recipientName: ''
+      recipientName: '',
+      images: []
     }]);
   };
+
+  const handleImageUpload = (actId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setActivities(prev => prev.map(a => a.id === actId ? { ...a, images: [...(a.images || []), base64] } : a));
+    };
+    reader.readAsDataURL(file);
+  };
+
 
   const totals = useMemo(() => {
     const labor = items.reduce((a, i) => a + i.total, 0) * MULTIPLIERS.height[height] * MULTIPLIERS.infrastructure[infra];
@@ -641,6 +654,36 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                             </p>
                           </div>
                         )}
+
+                        {/* Activity Images */}
+                        <div className="pt-2 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] uppercase font-black text-txt-muted tracking-widest">Evidencia Fotográfica</label>
+                            {phase !== 'completed' && (
+                              <label className="cursor-pointer flex items-center gap-2 text-[10px] font-black text-cyan hover:text-cyan-light transition-colors uppercase tracking-widest">
+                                <Plus size={14} /> Adjuntar Imagen
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(act.id, e)} />
+                              </label>
+                            )}
+                          </div>
+                          {act.images && act.images.length > 0 && (
+                            <div className="grid grid-cols-4 gap-3">
+                              {act.images.map((img, idx) => (
+                                <div key={idx} className="relative group aspect-video rounded-xl overflow-hidden border border-white/10">
+                                  <img src={img} alt="Evidencia" className="w-full h-full object-cover" />
+                                  {phase !== 'completed' && (
+                                    <button 
+                                      onClick={() => setActivities(activities.map(a => a.id === act.id ? { ...a, images: a.images?.filter((_, i) => i !== idx) } : a))}
+                                      className="absolute top-1 right-1 p-1 bg-rose/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
                         {/* Activity Signature */}
                         <div className="pt-2">

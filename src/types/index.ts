@@ -53,6 +53,7 @@ export interface ActivityLog {
   price: number;
   recipientSignature?: string;
   recipientName?: string;
+  images?: string[];
 }
 
 export type ProjectStatus = 'survey' | 'quoted' | 'in_progress' | 'completed';
