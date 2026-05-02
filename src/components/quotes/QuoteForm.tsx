@@ -631,6 +631,23 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                           placeholder="Descripción detallada de la actividad realizada..."
                           className="w-full bg-deep border border-white/5 rounded-2xl p-4 text-sm text-txt outline-none focus:border-brand/30 transition-all resize-none shadow-inner" rows={3} />
                         
+                        {/* Botón de Análisis IA Prominente */}
+                        {phase !== 'completed' && (
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => handleAIAnalysis(act.id, act.description)}
+                              disabled={analyzingAct === act.id || !act.description}
+                              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                                analyzingAct === act.id 
+                                  ? 'bg-cyan/20 border-cyan text-cyan animate-pulse' 
+                                  : 'bg-brand/10 border-brand/20 text-brand hover:bg-brand/20 hover:border-brand/40'
+                              }`}
+                            >
+                              {analyzingAct === act.id ? 'Analizando...' : '✨ Analizar Precio con IA'}
+                            </button>
+                          </div>
+                        )}
+                        
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                           <div className="space-y-1.5">
                             <label className="text-[9px] uppercase font-black text-txt-muted tracking-widest ml-1">Tiempo Est. (Hrs)</label>
@@ -646,19 +663,7 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                               <input type="number" value={act.price} 
                                 disabled={phase === 'completed'}
                                 onChange={e => setActivities(activities.map(a => a.id === act.id ? { ...a, price: parseFloat(e.target.value) || 0 } : a))}
-                                className="w-full bg-deep border border-white/5 rounded-xl pl-8 pr-12 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner disabled:opacity-50" />
-                              {phase !== 'completed' && (
-                                <button
-                                  onClick={() => handleAIAnalysis(act.id, act.description)}
-                                  disabled={analyzingAct === act.id || !act.description}
-                                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-xs transition-all ${
-                                    analyzingAct === act.id ? 'bg-cyan text-deep animate-pulse' : 'text-cyan hover:bg-cyan/10'
-                                  }`}
-                                  title="Análisis IA de Precio"
-                                >
-                                  ✨
-                                </button>
-                              )}
+                                className="w-full bg-deep border border-white/5 rounded-xl pl-8 pr-4 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner disabled:opacity-50" />
                             </div>
                           </div>
                           <div className="space-y-1.5">
