@@ -73,47 +73,45 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
     setTimeout(() => {
       const descLower = description.toLowerCase();
       const ctxLower = projectData.context?.toLowerCase() || '';
-      let basePrice = 0;
-      let detectedItems = [];
-      let quantity = 1;
       
-      // Extract numbers to estimate quantity (e.g. "10 puntos electricos")
-      const nums = descLower.match(/\d+/g) || ctxLower.match(/\d+/g);
-      if (nums && nums.length > 0) {
-        quantity = Math.min(parseInt(nums[0]), 50); // cap multiplier
+      let suggestions: string[] = [];
+      let baseModifier = '';
+      
+      // Contextual multipliers analysis
+      if (ctxLower.includes('altura') || height === 'high') baseModifier = ' (con recargo sugerido del 30% por trabajo en alturas)';
+      if (infra === 'industrial' || ctxLower.includes('industrial') || ctxLower.includes('tuberia') || ctxLower.includes('emt')) {
+          baseModifier += ' (con recargo sugerido del 30% por infraestructura compleja/EMT)';
       }
 
-      if (descLower.includes('punto') || descLower.includes('eléctrico') || descLower.includes('electrico')) {
-        basePrice = 35000;
-        detectedItems.push(`${quantity} punto(s) eléctrico(s)`);
-      } else if (descLower.includes('cámara') || descLower.includes('camara')) {
-        basePrice = 45000;
-        detectedItems.push(`${quantity} cámara(s)`);
-      } else if (descLower.includes('dvr') || descLower.includes('nvr')) {
-        basePrice = 85000;
-        detectedItems.push('configuración DVR/NVR');
-        quantity = 1; // Usually per system
-      } else if (descLower.includes('mantenimiento') || descLower.includes('limpieza')) {
-        basePrice = 25000;
-        detectedItems.push(`${quantity} mantenimiento(s)`);
-      } else if (descLower.includes('cable') || descLower.includes('cableado')) {
-        basePrice = 20000;
-        detectedItems.push(`tendido de cableado`);
-      } else {
-        basePrice = 45000; // Visita técnica general
-        detectedItems.push('servicio general');
+      if (descLower.includes('punto') || descLower.includes('eléctrico') || descLower.includes('electrico') || descLower.includes('toma')) {
+        suggestions.push(`Punto Eléctrico / Toma: $35.000 - $50.000 COP / unidad${baseModifier}`);
       }
-      
-      // Contextual multipliers
-      let multiplier = 1;
-      if (ctxLower.includes('altura') || height === 'high') multiplier += 0.3;
-      if (infra === 'industrial' || ctxLower.includes('industrial')) multiplier += 0.3;
-      
-      const totalEstimated = basePrice * quantity * multiplier;
-      const minPrice = Math.floor(totalEstimated * 0.85 / 1000) * 1000;
-      const maxPrice = Math.floor(totalEstimated * 1.15 / 1000) * 1000;
-      
-      const message = `Análisis de mercado (Colombia): Se detectó ${detectedItems.join(', ')}. El precio sugerido oscila entre $${minPrice.toLocaleString()} y $${maxPrice.toLocaleString()} COP (considerando condiciones de entorno).`;
+      if (descLower.includes('cámara') || descLower.includes('camara')) {
+        if (descLower.includes('wifi') || descLower.includes('ip') || descLower.includes('inalambrica')) {
+            suggestions.push(`Instalación Cámara IP/WiFi: $50.000 - $90.000 COP / unidad${baseModifier}`);
+        } else {
+            suggestions.push(`Instalación Cámara Cableada (Incluye canalización básica): $80.000 - $120.000 COP / unidad${baseModifier}`);
+        }
+      }
+      if (descLower.includes('dvr') || descLower.includes('nvr') || descLower.includes('configuración')) {
+        suggestions.push(`Configuración DVR/NVR y App Móvil: $100.000 - $150.000 COP / sistema`);
+      }
+      if (descLower.includes('mantenimiento') || descLower.includes('limpieza')) {
+        suggestions.push(`Mantenimiento Preventivo CCTV: $25.000 - $40.000 COP / cámara`);
+      }
+      if (descLower.includes('cable') || descLower.includes('cableado') || descLower.includes('utp')) {
+        suggestions.push(`Tendido de Cableado (UTP/Coaxial): $2.000 - $4.500 COP / metro lineal`);
+      }
+      if (descLower.includes('visita') || descLower.includes('diagnostico') || descLower.includes('diagnóstico')) {
+        suggestions.push(`Visita Técnica / Diagnóstico: $70.000 - $90.000 COP (Reembolsable si se aprueba el trabajo)`);
+      }
+
+      if (suggestions.length === 0) {
+        suggestions.push(`Servicio Técnico General / Hora Laboral: $40.000 - $60.000 COP / hora${baseModifier}`);
+      }
+
+      // Format bullet points
+      const message = `Mercado Colombiano Promedio:\n• ` + suggestions.join('\n• ');
       
       setAiSuggestion({ actId, message });
       setAnalyzingAct(null);
@@ -638,7 +636,7 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                             <p className="text-[10px] font-black text-brand uppercase tracking-widest flex items-center gap-2">
                               ✨ Sugerencia de Mercado
                             </p>
-                            <p className="text-xs text-txt font-medium leading-relaxed">
+                            <p className="text-xs text-txt font-medium leading-relaxed whitespace-pre-wrap">
                               {aiSuggestion.message}
                             </p>
                           </div>
