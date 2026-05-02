@@ -456,10 +456,9 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
             </motion.div>
           )}
 
-          {/* ITEMS & RESOURCES (survey + quoted) */}
-          {(phase === 'survey' || phase === 'quoted') && (
-            <>
-              <section className="card">
+          {/* ITEMS & RESOURCES (Always visible, read-only when completed) */}
+          <div className="space-y-6">
+            <section className="card">
                 <div className="flex justify-between items-center mb-5">
                   <h3 className="text-[10px] uppercase font-bold text-violet flex items-center gap-2 tracking-widest">
                     <Star size={14} /> Mano de Obra y Servicios
@@ -547,8 +546,7 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                   ))}
                 </div>
               </section>
-            </>
-          )}
+            </div>
 
           {/* ACTIVITY LOG (in_progress + completed) */}
           {(phase === 'in_progress' || phase === 'completed') && (
