@@ -44,6 +44,17 @@ body {
     radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
 }
 
+/* Date and Time Inputs Customization */
+input[type="date"],
+input[type="time"] {
+  @apply bg-deep/50 border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold focus:border-brand/50 outline-none transition-all shadow-inner text-txt cursor-pointer appearance-none;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  @apply cursor-pointer opacity-50 hover:opacity-100 transition-opacity filter invert;
+}
+
 /* ─── UTILITIES ─── */
 .glass {
   background-color: var(--color-glass);

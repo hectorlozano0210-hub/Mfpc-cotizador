@@ -53,13 +53,52 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
     helpers: initialProject?.difficultyConfig.helpers || 0,
     scaffolding: initialProject?.difficultyConfig.scaffolding || false,
     ladder: initialProject?.difficultyConfig.ladder || false,
+    context: initialProject?.difficultyConfig.context || '',
     reference: initialProject?.reference || DataStore.getNextReference('COT')
   });
 
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [showTabulators, setShowTabulators] = useState(false);
+  const [analyzingAct, setAnalyzingAct] = useState<string | null>(null);
 
   const phaseIndex = PHASE_ORDER.indexOf(phase);
+
+  const handleAIAnalysis = (actId: string, description: string) => {
+    if (!description.trim()) return;
+    setAnalyzingAct(actId);
+    
+    setTimeout(() => {
+      const descLower = description.toLowerCase();
+      const ctxLower = projectData.context?.toLowerCase() || '';
+      let basePrice = 45000; // Visita técnica base
+      
+      if (descLower.includes('cámara') || descLower.includes('camara')) basePrice += 35000;
+      if (descLower.includes('dvr') || descLower.includes('nvr')) basePrice += 65000;
+      if (descLower.includes('cable') || descLower.includes('cableado')) basePrice += 25000;
+      if (descLower.includes('red') || descLower.includes('configuración')) basePrice += 50000;
+      if (descLower.includes('mantenimiento') || descLower.includes('limpieza')) basePrice += 30000;
+      
+      // Contextual multipliers
+      if (ctxLower.includes('altura') || height === 'high') basePrice *= 1.4;
+      if (infra === 'industrial' || ctxLower.includes('industrial')) basePrice *= 1.3;
+      
+      // Extract numbers to estimate quantity (e.g. "9 camaras")
+      const nums = descLower.match(/\d+/g) || ctxLower.match(/\d+/g);
+      if (nums && nums.length > 0) {
+        const firstNum = Math.min(parseInt(nums[0]), 20); // cap multiplier
+        if (firstNum > 1 && !descLower.includes('metros')) {
+           basePrice *= (1 + (firstNum * 0.2));
+        }
+      }
+      
+      // Randomize within 10% for realistic "AI" estimation (rounded to thousands)
+      const finalPrice = Math.floor((basePrice * (0.9 + Math.random() * 0.2)) / 1000) * 1000;
+      
+      setActivities(activities.map(a => a.id === actId ? { ...a, price: finalPrice } : a));
+      setAnalyzingAct(null);
+    }, 1500);
+  };
 
   // ─── Actions ───
   const addItem = (desc = '', price = 0) => {
@@ -291,67 +330,97 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                 </div>
               </section>
 
-              <section className="card !p-10 space-y-8">
-                <h3 className="text-xs uppercase font-black text-cyan flex items-center gap-3 tracking-[0.2em]">
-                  <ShieldAlert size={18} /> Complejidad y Entorno
-                </h3>
-                <div className="space-y-5">
-                  <div>
-                    <p className="text-[10px] text-txt-muted uppercase font-bold mb-2 tracking-wider">Altura de Instalación</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {([['low', '< 3m'], ['medium', '3-6m'], ['high', '> 6m']] as const).map(([k, label]) => (
-                        <button key={k} onClick={() => setHeight(k)}
-                          className={`py-3 rounded-xl text-xs font-bold border transition-all ${
-                            height === k ? 'bg-brand border-brand text-white shadow-lg shadow-brand/20' : 'border-border text-txt-muted hover:border-txt-secondary'
-                          }`}>
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-txt-muted uppercase font-bold mb-2 tracking-wider">Infraestructura</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['canaleta', 'emt', 'industrial'] as const).map(t => (
-                        <button key={t} onClick={() => setInfra(t)}
-                          className={`py-3 rounded-xl text-xs font-bold border transition-all ${
-                            infra === t ? 'bg-cyan border-cyan text-deep shadow-lg shadow-cyan/20' : 'border-border text-txt-muted hover:border-txt-secondary'
-                          }`}>
-                          {t.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                    <button onClick={() => setProjectData({ ...projectData, scaffolding: !projectData.scaffolding })}
-                      className={`flex flex-col items-center p-4 rounded-2xl border transition-all ${
-                        projectData.scaffolding ? 'border-cyan bg-cyan/10 text-cyan' : 'border-border text-txt-muted'
-                      }`}>
-                      <Truck size={22} className="mb-2" />
-                      <span className="text-[10px] font-bold uppercase">Andamios</span>
-                    </button>
-                    <button onClick={() => setProjectData({ ...projectData, ladder: !projectData.ladder })}
-                      className={`flex flex-col items-center p-4 rounded-2xl border transition-all ${
-                        projectData.ladder ? 'border-cyan bg-cyan/10 text-cyan' : 'border-border text-txt-muted'
-                      }`}>
-                      <Hammer size={22} className="mb-2" />
-                      <span className="text-[10px] font-bold uppercase">Escaleras</span>
-                    </button>
-                    <div className="flex items-center bg-elevated rounded-2xl p-4 gap-4 col-span-2 lg:col-span-1">
-                      <Briefcase size={22} className="text-txt-muted shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-[10px] font-bold text-txt-muted uppercase">Ayudantes</p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <button onClick={() => setProjectData({ ...projectData, helpers: Math.max(0, projectData.helpers - 1) })}
-                            className="w-8 h-8 rounded-lg bg-deep text-txt flex items-center justify-center font-bold hover:bg-surface transition-colors">−</button>
-                          <span className="font-bold text-lg text-txt w-6 text-center">{projectData.helpers}</span>
-                          <button onClick={() => setProjectData({ ...projectData, helpers: projectData.helpers + 1 })}
-                            className="w-8 h-8 rounded-lg bg-deep text-txt flex items-center justify-center font-bold hover:bg-surface transition-colors">+</button>
+              <section className="card !p-10">
+                <button 
+                  onClick={() => setShowTabulators(!showTabulators)}
+                  className="w-full flex items-center justify-between focus:outline-none group"
+                >
+                  <h3 className="text-xs uppercase font-black text-cyan flex items-center gap-3 tracking-[0.2em] group-hover:text-cyan-light transition-colors">
+                    <ShieldAlert size={18} /> Condiciones de Trabajo (Tabuladores)
+                  </h3>
+                  <ChevronRight size={18} className={`text-txt-muted transition-transform duration-300 ${showTabulators ? 'rotate-90 text-cyan' : ''}`} />
+                </button>
+                
+                <AnimatePresence>
+                  {showTabulators && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden mt-8"
+                    >
+                      <div className="space-y-6">
+                        <div>
+                          <p className="text-[10px] text-txt-muted uppercase font-bold mb-2 tracking-wider">Altura de Instalación</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {([['low', '< 3m'], ['medium', '3-6m'], ['high', '> 6m']] as const).map(([k, label]) => (
+                              <button key={k} onClick={() => setHeight(k)}
+                                className={`py-3 rounded-xl text-xs font-bold border transition-all ${
+                                  height === k ? 'bg-brand border-brand text-white shadow-lg shadow-brand/20' : 'border-border text-txt-muted hover:border-txt-secondary'
+                                }`}>
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-txt-muted uppercase font-bold mb-2 tracking-wider">Infraestructura</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {(['canaleta', 'emt', 'industrial'] as const).map(t => (
+                              <button key={t} onClick={() => setInfra(t)}
+                                className={`py-3 rounded-xl text-xs font-bold border transition-all ${
+                                  infra === t ? 'bg-cyan border-cyan text-deep shadow-lg shadow-cyan/20' : 'border-border text-txt-muted hover:border-txt-secondary'
+                                }`}>
+                                {t.toUpperCase()}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                          <button onClick={() => setProjectData({ ...projectData, scaffolding: !projectData.scaffolding })}
+                            className={`flex flex-col items-center p-4 rounded-2xl border transition-all ${
+                              projectData.scaffolding ? 'border-cyan bg-cyan/10 text-cyan' : 'border-border text-txt-muted'
+                            }`}>
+                            <Truck size={22} className="mb-2" />
+                            <span className="text-[10px] font-bold uppercase">Andamios</span>
+                          </button>
+                          <button onClick={() => setProjectData({ ...projectData, ladder: !projectData.ladder })}
+                            className={`flex flex-col items-center p-4 rounded-2xl border transition-all ${
+                              projectData.ladder ? 'border-cyan bg-cyan/10 text-cyan' : 'border-border text-txt-muted'
+                            }`}>
+                            <Hammer size={22} className="mb-2" />
+                            <span className="text-[10px] font-bold uppercase">Escaleras</span>
+                          </button>
+                          <div className="flex items-center bg-elevated rounded-2xl p-4 gap-4 col-span-2 lg:col-span-1 border border-transparent">
+                            <Briefcase size={22} className="text-txt-muted shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-[10px] font-bold text-txt-muted uppercase">Ayudantes</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                <button onClick={() => setProjectData({ ...projectData, helpers: Math.max(0, projectData.helpers - 1) })}
+                                  className="w-8 h-8 rounded-lg bg-deep text-txt flex items-center justify-center font-bold hover:bg-surface transition-colors">−</button>
+                                <span className="font-bold text-lg text-txt w-6 text-center">{projectData.helpers}</span>
+                                <button onClick={() => setProjectData({ ...projectData, helpers: projectData.helpers + 1 })}
+                                  className="w-8 h-8 rounded-lg bg-deep text-txt flex items-center justify-center font-bold hover:bg-surface transition-colors">+</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="pt-4 border-t border-white/5">
+                          <p className="text-[10px] text-txt-muted uppercase font-bold mb-2 tracking-wider flex items-center gap-2">
+                            Contexto Adicional (Para la IA)
+                          </p>
+                          <textarea
+                            value={projectData.context || ''}
+                            onChange={(e) => setProjectData({ ...projectData, context: e.target.value })}
+                            placeholder="Ej: Se colocarán 9 cámaras a una altura de 6 metros con una distancia aproximada entre 70 y 90 metros."
+                            className="w-full bg-deep border border-white/5 rounded-2xl p-4 text-sm font-medium focus:border-brand/50 outline-none transition-all shadow-inner resize-none h-24"
+                          />
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </section>
             </motion.div>
           )}
@@ -493,31 +562,47 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                           <div className="space-y-1.5">
                             <label className="text-[9px] uppercase font-black text-txt-muted tracking-widest ml-1">Tiempo Est. (Hrs)</label>
                             <input type="number" value={act.estimatedHours} 
+                              disabled={phase === 'completed'}
                               onChange={e => setActivities(activities.map(a => a.id === act.id ? { ...a, estimatedHours: parseFloat(e.target.value) || 0 } : a))}
-                              className="w-full bg-deep border border-white/5 rounded-xl px-4 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner" />
+                              className="w-full bg-deep border border-white/5 rounded-xl px-4 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner disabled:opacity-50" />
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[9px] uppercase font-black text-txt-muted tracking-widest ml-1">Precio Trabajo</label>
                             <div className="relative">
                               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan font-bold text-xs">$</span>
                               <input type="number" value={act.price} 
+                                disabled={phase === 'completed'}
                                 onChange={e => setActivities(activities.map(a => a.id === act.id ? { ...a, price: parseFloat(e.target.value) || 0 } : a))}
-                                className="w-full bg-deep border border-white/5 rounded-xl pl-8 pr-4 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner" />
+                                className="w-full bg-deep border border-white/5 rounded-xl pl-8 pr-12 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner disabled:opacity-50" />
+                              {phase !== 'completed' && (
+                                <button
+                                  onClick={() => handleAIAnalysis(act.id, act.description)}
+                                  disabled={analyzingAct === act.id || !act.description}
+                                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-xs transition-all ${
+                                    analyzingAct === act.id ? 'bg-cyan text-deep animate-pulse' : 'text-cyan hover:bg-cyan/10'
+                                  }`}
+                                  title="Análisis IA de Precio"
+                                >
+                                  ✨
+                                </button>
+                              )}
                             </div>
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[9px] uppercase font-black text-txt-muted tracking-widest ml-1">Autorizado por</label>
                             <input type="text" value={act.authorizedBy} 
+                              disabled={phase === 'completed'}
                               onChange={e => setActivities(activities.map(a => a.id === act.id ? { ...a, authorizedBy: e.target.value } : a))}
                               placeholder="Nombre/Cargo"
-                              className="w-full bg-deep border border-white/5 rounded-xl px-4 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner" />
+                              className="w-full bg-deep border border-white/5 rounded-xl px-4 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner disabled:opacity-50" />
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[9px] uppercase font-black text-txt-muted tracking-widest ml-1">Recibe (Nombre)</label>
                             <input type="text" value={act.recipientName} 
+                              disabled={phase === 'completed'}
                               onChange={e => setActivities(activities.map(a => a.id === act.id ? { ...a, recipientName: e.target.value } : a))}
                               placeholder="Nombre de quien recibe"
-                              className="w-full bg-deep border border-white/5 rounded-xl px-4 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner" />
+                              className="w-full bg-deep border border-white/5 rounded-xl px-4 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner disabled:opacity-50" />
                           </div>
                         </div>
 
@@ -612,12 +697,23 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
 
             {/* Actions */}
             <div className="space-y-3">
+              {phase === 'in_progress' && (
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setPhase('completed');
+                    setProjectData(prev => ({ ...prev, reference: DataStore.getNextReference('CC') }));
+                  }} 
+                  className="w-full py-4 bg-emerald hover:bg-emerald-light text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald/20 animate-pulse">
+                  <Check size={20} /> Totalizar y Cerrar Informe
+                </motion.button>
+              )}
+              
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 onClick={handleSaveProject} className="w-full py-4 bg-brand hover:bg-brand-light text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-xl shadow-brand/20">
                 <Plus size={20} /> Guardar Proyecto
               </motion.button>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                onClick={handleShareWhatsApp} className="w-full py-4 bg-emerald hover:bg-emerald/80 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald/20">
+                onClick={handleShareWhatsApp} className="w-full py-4 bg-[#25D366] hover:bg-[#25D366]/80 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-xl shadow-[#25D366]/20">
                 <MessageCircle size={20} /> WhatsApp
               </motion.button>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}

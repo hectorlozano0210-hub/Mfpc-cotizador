@@ -200,6 +200,16 @@ export const ClientsView = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <label className="text-[10px] uppercase font-black text-txt-muted tracking-widest ml-2">Correo Electrónico</label>
+                  <input 
+                    type="email"
+                    value={selectedClient?.email || ''}
+                    onChange={(e) => setSelectedClient({ ...selectedClient, email: e.target.value })}
+                    className="w-full bg-deep/50 border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold focus:border-brand/50 outline-none transition-all shadow-inner"
+                    placeholder="contacto@empresa.com"
+                  />
+                </div>
+                <div className="space-y-2">
                   <label className="text-[10px] uppercase font-black text-txt-muted tracking-widest ml-2">Persona de Contacto</label>
                   <input 
                     value={selectedClient?.contact || ''}

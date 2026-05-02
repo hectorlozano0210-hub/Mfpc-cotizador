@@ -63,6 +63,7 @@ export interface DifficultyConfig {
   scaffolding: boolean;
   ladder: boolean;
   helpers: number;
+  context?: string; // Contexto adicional para la IA
 }
 
 export interface Project {
