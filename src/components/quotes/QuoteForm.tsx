@@ -78,36 +78,80 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
       let baseModifier = '';
       
       // Contextual multipliers analysis
-      if (ctxLower.includes('altura') || height === 'high') baseModifier = ' (con recargo sugerido del 30% por trabajo en alturas)';
+      if (ctxLower.includes('altura') || height === 'high') baseModifier = ' (con recargo del 30% por trabajo en alturas)';
       if (infra === 'industrial' || ctxLower.includes('industrial') || ctxLower.includes('tuberia') || ctxLower.includes('emt')) {
-          baseModifier += ' (con recargo sugerido del 30% por infraestructura compleja/EMT)';
+          baseModifier += ' (con recargo del 30% por infraestructura compleja)';
       }
 
-      if (descLower.includes('punto') || descLower.includes('eléctrico') || descLower.includes('electrico') || descLower.includes('toma')) {
-        suggestions.push(`Punto Eléctrico / Toma: $35.000 - $50.000 COP / unidad${baseModifier}`);
-      }
-      if (descLower.includes('cámara') || descLower.includes('camara')) {
-        if (descLower.includes('wifi') || descLower.includes('ip') || descLower.includes('inalambrica')) {
-            suggestions.push(`Instalación Cámara IP/WiFi: $50.000 - $90.000 COP / unidad${baseModifier}`);
-        } else {
-            suggestions.push(`Instalación Cámara Cableada (Incluye canalización básica): $80.000 - $120.000 COP / unidad${baseModifier}`);
+      // 1. Equipos de Cómputo (Portátiles, PCs, Software)
+      if (/(port[aá]til|computador|pc|laptop|macbook)/i.test(descLower)) {
+        if (/(virus|malware|troyano|escaneo|borrado|temporales|cookies|optimiza)/i.test(descLower)) {
+          suggestions.push(`Optimización y Limpieza de Software (Virus/Temporales): $50.000 - $80.000 COP`);
+        }
+        if (/(formateo|windows|sistema operativo|office|instala.*software)/i.test(descLower)) {
+          suggestions.push(`Formateo e Instalación de S.O. y Programas Básicos: $70.000 - $120.000 COP`);
+        }
+        if (/(mantenimiento.*f[ií]sico|limpieza.*interna|pasta t[eé]rmica)/i.test(descLower)) {
+          suggestions.push(`Mantenimiento Preventivo (Limpieza interna y pasta térmica): $60.000 - $90.000 COP`);
+        }
+        if (/(revisi[oó]n|diagn[oó]stico|falla)/i.test(descLower)) {
+          suggestions.push(`Diagnóstico de Hardware/Software: $40.000 - $60.000 COP`);
         }
       }
-      if (descLower.includes('dvr') || descLower.includes('nvr') || descLower.includes('configuración')) {
-        suggestions.push(`Configuración DVR/NVR y App Móvil: $100.000 - $150.000 COP / sistema`);
-      }
-      if (descLower.includes('mantenimiento') || descLower.includes('limpieza')) {
-        suggestions.push(`Mantenimiento Preventivo CCTV: $25.000 - $40.000 COP / cámara`);
-      }
-      if (descLower.includes('cable') || descLower.includes('cableado') || descLower.includes('utp')) {
-        suggestions.push(`Tendido de Cableado (UTP/Coaxial): $2.000 - $4.500 COP / metro lineal`);
-      }
-      if (descLower.includes('visita') || descLower.includes('diagnostico') || descLower.includes('diagnóstico')) {
-        suggestions.push(`Visita Técnica / Diagnóstico: $70.000 - $90.000 COP (Reembolsable si se aprueba el trabajo)`);
+
+      // 2. Trabajos Eléctricos
+      if (/(energ[ií]a|el[eé]ctric|voltio|12v|110v|220v|toma|corriente|breaker|tablero)/i.test(descLower)) {
+        if (/(punto|toma)/i.test(descLower)) {
+          suggestions.push(`Punto Eléctrico / Toma de Corriente: $35.000 - $55.000 COP / unidad${baseModifier}`);
+        }
+        if (/(breaker|tablero|caja)/i.test(descLower)) {
+          suggestions.push(`Instalación de Breaker / Tablero Eléctrico: $80.000 - $150.000 COP${baseModifier}`);
+        }
+        if (/(cableado|tirar cable)/i.test(descLower) && !descLower.includes('red')) {
+          suggestions.push(`Tendido de Cableado Eléctrico: $4.000 - $8.000 COP / metro lineal${baseModifier}`);
+        }
       }
 
+      // 3. CCTV y Seguridad
+      if (/(cctv|c[aá]mara|dvr|nvr|hikvision|dahua)/i.test(descLower)) {
+        if (/(ip|wifi|inal[aá]mbrica)/i.test(descLower)) {
+          suggestions.push(`Instalación Cámara IP/WiFi (Configuración básica): $50.000 - $90.000 COP / unidad${baseModifier}`);
+        } else if (/(instala)/i.test(descLower)) {
+          suggestions.push(`Instalación Cámara CCTV Cableada (Incluye canalización): $80.000 - $120.000 COP / unidad${baseModifier}`);
+        }
+        if (/(dvr|nvr|configuraci[oó]n)/i.test(descLower)) {
+          suggestions.push(`Configuración DVR/NVR y Red Móvil: $100.000 - $150.000 COP / sistema`);
+        }
+        if (/(mantenimiento|limpieza|revisi[oó]n)/i.test(descLower) && /(c[aá]mara)/i.test(descLower)) {
+          suggestions.push(`Mantenimiento Preventivo de Cámara: $25.000 - $45.000 COP / unidad`);
+        }
+      }
+
+      // 4. Alarmas y Sensores
+      if (/(alarma|sensor|movimiento|sirena|panel.*alarma|biom[eé]trico|acceso)/i.test(descLower)) {
+        suggestions.push(`Instalación de Sensor/Dispositivo de Alarma: $40.000 - $70.000 COP / unidad${baseModifier}`);
+        if (/(panel|teclado|cerebro)/i.test(descLower)) {
+          suggestions.push(`Configuración de Panel de Alarma / Control de Acceso: $120.000 - $200.000 COP`);
+        }
+      }
+
+      // 5. Redes y Telecomunicaciones
+      if (/(red|router|switch|access point|wifi|rack|patch|utp|datos|internet)/i.test(descLower)) {
+        if (/(punto|jack|rj45|roseta)/i.test(descLower)) {
+          suggestions.push(`Instalación de Punto de Red (Voz/Datos): $60.000 - $90.000 COP / punto${baseModifier}`);
+        }
+        if (/(router|access point|ap|repetidor)/i.test(descLower)) {
+          suggestions.push(`Configuración Access Point / Router: $70.000 - $100.000 COP`);
+        }
+        if (/(rack|patch panel|organiza)/i.test(descLower)) {
+          suggestions.push(`Organización/Peinado de Rack: $60.000 - $100.000 COP / hora`);
+        }
+      }
+
+      // Default fallback if no matches
       if (suggestions.length === 0) {
-        suggestions.push(`Servicio Técnico General / Hora Laboral: $40.000 - $60.000 COP / hora${baseModifier}`);
+        suggestions.push(`Visita Técnica / Diagnóstico General: $70.000 - $90.000 COP`);
+        suggestions.push(`Servicio Técnico / Hora Laboral Básica: $40.000 - $60.000 COP / hora${baseModifier}`);
       }
 
       // Format bullet points
