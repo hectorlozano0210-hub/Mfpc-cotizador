@@ -1,0 +1,199 @@
+@import "tailwindcss";
+
+@theme {
+  --color-deep: #050507;
+  --color-surface: #0a0a0c;
+  --color-elevated: #111114;
+  --color-main: #16161a;
+
+  --color-brand: #3b82f6;
+  --color-brand-light: #60a5fa;
+  --color-brand-dark: #2563eb;
+
+  --color-cyan: #06b6d4;
+  --color-cyan-light: #22d3ee;
+
+  --color-violet: #8b5cf6;
+  --color-amber: #f59e0b;
+  --color-emerald: #10b981;
+  --color-rose: #f43f5e;
+
+  --color-txt: #f8fafc;
+  --color-txt-secondary: #94a3b8;
+  --color-txt-muted: #64748b;
+
+  --color-glass: rgba(10, 10, 12, 0.7);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  --shadow-glow-blue: 0 0 20px rgba(59, 130, 246, 0.15);
+  --shadow-glow-cyan: 0 0 20px rgba(6, 182, 212, 0.15);
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+}
+
+/* ─── BASE STYLES ─── */
+body {
+  @apply bg-deep text-txt font-body antialiased selection:bg-brand/30;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
+}
+
+/* ─── UTILITIES ─── */
+.glass {
+  background-color: var(--color-glass);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--color-glass-border);
+}
+
+.card {
+  @apply bg-elevated/40 backdrop-blur-md border border-glass-border rounded-2xl p-8 transition-all duration-300;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.card:hover {
+  @apply border-brand/20 bg-elevated/60;
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), var(--shadow-glow-blue);
+}
+
+.btn-primary {
+  @apply bg-brand hover:bg-brand-light text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-brand/20 active:scale-95;
+}
+
+.badge {
+  @apply px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider;
+}
+
+.badge-blue {
+  @apply bg-brand/10 text-brand-light border border-brand/20;
+}
+
+.badge-cyan {
+  @apply bg-cyan/10 text-cyan border border-cyan/20;
+}
+
+.badge-purple {
+  @apply bg-violet/10 text-violet border border-violet/20;
+}
+
+.badge-green {
+  @apply bg-emerald/10 text-emerald border border-emerald/20;
+}
+
+.badge-amber {
+  @apply bg-amber/10 text-amber border border-amber/20;
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+@keyframes pulse-soft {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+  }
+}
+
+/* ─── AMBIENT ORBS ─── */
+.ambient-orb {
+  @apply absolute rounded-full blur-[120px] pointer-events-none opacity-20;
+  animation: float 15s ease-in-out infinite;
+}
+
+/* ─── BRANDING UTILS ─── */
+.logo-blend {
+  mix-blend-mode: screen;
+  filter: contrast(1.1) drop-shadow(0 0 10px rgba(6, 182, 212, 0.3));
+}
+
+.ambient-orb-1 {
+  @apply w-96 h-96 bg-brand top-[-10%] right-[-5%];
+}
+
+.ambient-orb-2 {
+  @apply w-80 h-80 bg-violet bottom-[10%] left-[-5%];
+  animation-delay: -2s;
+}
+
+/* ─── FLOATING SIDEBAR ─── */
+.floating-sidebar {
+  @apply fixed left-4 top-4 bottom-4 w-72 rounded-3xl z-50 flex flex-col p-4 shadow-2xl;
+  background-color: var(--color-glass);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--color-glass-border);
+  height: calc(100vh - 2rem);
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 4s ease-in-out infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-glass-border rounded-full hover:bg-txt-muted/30 transition-colors;
+}
+
+/* Grid Layouts */
+.grid-form {
+  @apply grid grid-cols-1 md:grid-cols-[1fr_350px] gap-8;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
