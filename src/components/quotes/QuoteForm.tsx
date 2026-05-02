@@ -61,41 +61,61 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
   const [showResults, setShowResults] = useState(false);
   const [showTabulators, setShowTabulators] = useState(false);
   const [analyzingAct, setAnalyzingAct] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<{ actId: string, message: string } | null>(null);
 
   const phaseIndex = PHASE_ORDER.indexOf(phase);
 
   const handleAIAnalysis = (actId: string, description: string) => {
     if (!description.trim()) return;
     setAnalyzingAct(actId);
+    setAiSuggestion(null);
     
     setTimeout(() => {
       const descLower = description.toLowerCase();
       const ctxLower = projectData.context?.toLowerCase() || '';
-      let basePrice = 45000; // Visita técnica base
+      let basePrice = 0;
+      let detectedItems = [];
+      let quantity = 1;
       
-      if (descLower.includes('cámara') || descLower.includes('camara')) basePrice += 35000;
-      if (descLower.includes('dvr') || descLower.includes('nvr')) basePrice += 65000;
-      if (descLower.includes('cable') || descLower.includes('cableado')) basePrice += 25000;
-      if (descLower.includes('red') || descLower.includes('configuración')) basePrice += 50000;
-      if (descLower.includes('mantenimiento') || descLower.includes('limpieza')) basePrice += 30000;
-      
-      // Contextual multipliers
-      if (ctxLower.includes('altura') || height === 'high') basePrice *= 1.4;
-      if (infra === 'industrial' || ctxLower.includes('industrial')) basePrice *= 1.3;
-      
-      // Extract numbers to estimate quantity (e.g. "9 camaras")
+      // Extract numbers to estimate quantity (e.g. "10 puntos electricos")
       const nums = descLower.match(/\d+/g) || ctxLower.match(/\d+/g);
       if (nums && nums.length > 0) {
-        const firstNum = Math.min(parseInt(nums[0]), 20); // cap multiplier
-        if (firstNum > 1 && !descLower.includes('metros')) {
-           basePrice *= (1 + (firstNum * 0.2));
-        }
+        quantity = Math.min(parseInt(nums[0]), 50); // cap multiplier
+      }
+
+      if (descLower.includes('punto') || descLower.includes('eléctrico') || descLower.includes('electrico')) {
+        basePrice = 35000;
+        detectedItems.push(`${quantity} punto(s) eléctrico(s)`);
+      } else if (descLower.includes('cámara') || descLower.includes('camara')) {
+        basePrice = 45000;
+        detectedItems.push(`${quantity} cámara(s)`);
+      } else if (descLower.includes('dvr') || descLower.includes('nvr')) {
+        basePrice = 85000;
+        detectedItems.push('configuración DVR/NVR');
+        quantity = 1; // Usually per system
+      } else if (descLower.includes('mantenimiento') || descLower.includes('limpieza')) {
+        basePrice = 25000;
+        detectedItems.push(`${quantity} mantenimiento(s)`);
+      } else if (descLower.includes('cable') || descLower.includes('cableado')) {
+        basePrice = 20000;
+        detectedItems.push(`tendido de cableado`);
+      } else {
+        basePrice = 45000; // Visita técnica general
+        detectedItems.push('servicio general');
       }
       
-      // Randomize within 10% for realistic "AI" estimation (rounded to thousands)
-      const finalPrice = Math.floor((basePrice * (0.9 + Math.random() * 0.2)) / 1000) * 1000;
+      // Contextual multipliers
+      let multiplier = 1;
+      if (ctxLower.includes('altura') || height === 'high') multiplier += 0.3;
+      if (infra === 'industrial' || ctxLower.includes('industrial')) multiplier += 0.3;
       
-      setActivities(activities.map(a => a.id === actId ? { ...a, price: finalPrice } : a));
+      const totalEstimated = basePrice * quantity * multiplier;
+      const minPrice = Math.floor(totalEstimated * 0.85 / 1000) * 1000;
+      const maxPrice = Math.floor(totalEstimated * 1.15 / 1000) * 1000;
+      
+      const message = `Análisis de mercado (Colombia): Se detectó ${detectedItems.join(', ')}. El precio sugerido oscila entre $${minPrice.toLocaleString()} y $${maxPrice.toLocaleString()} COP (considerando condiciones de entorno).`;
+      
+      setAiSuggestion({ actId, message });
       setAnalyzingAct(null);
     }, 1500);
   };
@@ -605,6 +625,24 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                               className="w-full bg-deep border border-white/5 rounded-xl px-4 py-2.5 text-xs font-bold text-txt outline-none focus:border-cyan/30 shadow-inner disabled:opacity-50" />
                           </div>
                         </div>
+
+                        {/* AI Suggestion Display */}
+                        {aiSuggestion?.actId === act.id && (
+                          <div className="bg-brand/10 border border-brand/20 p-4 rounded-2xl flex flex-col gap-2 relative">
+                            <button 
+                              onClick={() => setAiSuggestion(null)}
+                              className="absolute top-2 right-2 p-1 text-txt-muted hover:text-white transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                            <p className="text-[10px] font-black text-brand uppercase tracking-widest flex items-center gap-2">
+                              ✨ Sugerencia de Mercado
+                            </p>
+                            <p className="text-xs text-txt font-medium leading-relaxed">
+                              {aiSuggestion.message}
+                            </p>
+                          </div>
+                        )}
 
                         {/* Activity Signature */}
                         <div className="pt-2">
