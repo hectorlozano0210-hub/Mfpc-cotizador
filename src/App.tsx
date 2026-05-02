@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3, Users, PlusCircle, FileText, Settings, Bell, Search, Menu, X,
@@ -98,9 +98,16 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
+  const [isSyncing, setIsSyncing] = useState(true);
   const { settings, updateSettings } = useSettings();
+
+  useEffect(() => {
+    DataStore.syncWithAPI().then(() => {
+      setIsSyncing(false);
+    });
+  }, []);
   
-  if (!settings) return <div className="h-screen bg-deep flex items-center justify-center text-white font-bold animate-pulse">Cargando ecosistema...</div>;
+  if (!settings || isSyncing) return <div className="h-screen bg-deep flex items-center justify-center text-white font-bold animate-pulse">Cargando ecosistema y sincronizando base de datos...</div>;
 
   const stats = DataStore.getDashboardStats();
   const recentProjects = DataStore.getRecentProjects();

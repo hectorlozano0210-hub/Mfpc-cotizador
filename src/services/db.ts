@@ -4,7 +4,40 @@ const CLIENTS_KEY = 'mfx_clients';
 const PROJECTS_KEY = 'mfx_projects';
 const INVENTORY_KEY = 'mfx_inventory';
 
+// Configurar API: Cambia a 'http://localhost:3001' si pruebas localmente.
+const API_URL = 'https://mfpc-cotizador.onrender.com';
+
 export const DataStore = {
+  // --- Sync ---
+  syncWithAPI: async () => {
+    try {
+      // Pull Clients
+      const clientsRes = await fetch(`${API_URL}/api/clients`);
+      if (clientsRes.ok) {
+        const clients = await clientsRes.json();
+        localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients));
+      }
+      
+      // Pull Inventory
+      const invRes = await fetch(`${API_URL}/api/inventory`);
+      if (invRes.ok) {
+        const inventory = await invRes.json();
+        localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+      }
+
+      // Pull Projects
+      const projRes = await fetch(`${API_URL}/api/projects`);
+      if (projRes.ok) {
+        const projects = await projRes.json();
+        localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+      }
+      return true;
+    } catch (error) {
+      console.error('Error syncing with API:', error);
+      return false; // Silently fail and rely on localStorage
+    }
+  },
+
   // --- Clients ---
   getClients: (): Client[] => {
     const data = localStorage.getItem(CLIENTS_KEY);
@@ -14,17 +47,26 @@ export const DataStore = {
   saveClient: (client: Client) => {
     const clients = DataStore.getClients();
     const index = clients.findIndex(c => c.id === client.id);
-    if (index >= 0) {
-      clients[index] = { ...clients[index], ...client };
-    } else {
-      clients.push({ ...client, createdAt: new Date().toISOString() });
-    }
+    const newClient = { ...client, createdAt: client.createdAt || new Date().toISOString() };
+    
+    if (index >= 0) clients[index] = { ...clients[index], ...newClient };
+    else clients.push(newClient);
+    
     localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients));
+
+    // Fire and forget to API
+    fetch(`${API_URL}/api/clients`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newClient)
+    }).catch(e => console.error('API Error:', e));
   },
 
   deleteClient: (id: string) => {
     const clients = DataStore.getClients().filter(c => c.id !== id);
     localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients));
+    
+    fetch(`${API_URL}/api/clients/${id}`, { method: 'DELETE' }).catch(e => console.error('API Error:', e));
   },
 
   searchClients: (query: string): Client[] => {
@@ -46,17 +88,23 @@ export const DataStore = {
   saveInventoryItem: (item: InventoryItem) => {
     const inventory = DataStore.getInventory();
     const index = inventory.findIndex(i => i.id === item.id);
-    if (index >= 0) {
-      inventory[index] = item;
-    } else {
-      inventory.push(item);
-    }
+    if (index >= 0) inventory[index] = item;
+    else inventory.push(item);
+    
     localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+
+    fetch(`${API_URL}/api/inventory`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    }).catch(e => console.error('API Error:', e));
   },
 
   deleteInventoryItem: (id: string) => {
     const inventory = DataStore.getInventory().filter(i => i.id !== id);
     localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+
+    fetch(`${API_URL}/api/inventory/${id}`, { method: 'DELETE' }).catch(e => console.error('API Error:', e));
   },
 
   // --- Projects ---
@@ -108,7 +156,21 @@ export const DataStore = {
       projects.push(updatedProject);
     }
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+    
+    // Fire and forget to API
+    fetch(`${API_URL}/api/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedProject)
+    }).catch(e => console.error('API Error:', e));
+
     return updatedProject;
+  },
+
+  deleteProject: (id: string) => {
+    const projects = DataStore.getProjects().filter(p => p.id !== id);
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+    fetch(`${API_URL}/api/projects/${id}`, { method: 'DELETE' }).catch(e => console.error('API Error:', e));
   },
 
   getNextReference: (prefix: 'COT' | 'INF' | 'CC' = 'COT'): string => {
