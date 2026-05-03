@@ -251,9 +251,13 @@ app.delete('/api/projects/:id', async (req, res) => {
 // Serve static files from the React frontend (dist folder)
 app.use(express.static(path.join(__dirname, '../dist')));
 
-// Catch-all route to serve index.html for React Router
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+// Catch-all route to serve index.html for React Router (Express 5 compatible)
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  } else {
+    next();
+  }
 });
 
 // Starting server
