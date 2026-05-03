@@ -11,6 +11,7 @@ import { InventoryView } from './components/inventory/InventoryView';
 import { useSettings, BRANDING } from './hooks/useSettings';
 import type { AppSettings, Project } from './types/index';
 import { DataStore } from './services/db';
+import LoadingAnimation from './components/ui/LoadingAnimation';
 
 /* ─── Animation Variants ─── */
 const pageVariants = {
@@ -98,6 +99,17 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simular carga de base de datos
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) return <LoadingAnimation />;
   const [isSyncing, setIsSyncing] = useState(true);
   const { settings, updateSettings } = useSettings();
 

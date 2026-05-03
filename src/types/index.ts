@@ -31,6 +31,7 @@ export interface QuoteItem {
   unitPrice: number;
   difficultyMultiplier: number;
   total: number;
+  tags?: string[];
 }
 
 export interface ResourceItem {
@@ -54,6 +55,7 @@ export interface ActivityLog {
   recipientSignature?: string;
   recipientName?: string;
   images?: string[];
+  tags?: string[];
 }
 
 export type ProjectStatus = 'survey' | 'quoted' | 'in_progress' | 'completed';

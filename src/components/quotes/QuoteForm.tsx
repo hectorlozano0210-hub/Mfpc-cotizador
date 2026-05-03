@@ -66,6 +66,17 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
 
   const phaseIndex = PHASE_ORDER.indexOf(phase);
 
+  const autoTag = (text: string) => {
+    const textLower = text.toLowerCase();
+    const tags: string[] = [];
+    if (/(c[aá]mara|cctv|dvr|nvr|hikvision|dahua)/i.test(textLower)) tags.push('Cámaras');
+    if (/(alarma|sensor|sirena|panel|biom[eé]trico|acceso|seguridad)/i.test(textLower)) tags.push('Seguridad');
+    if (/(port[aá]til|computador|pc|laptop|mantenimiento|formateo|limpieza)/i.test(textLower)) tags.push('Hora Técnica');
+    if (/(red|datos|utp|fibra|wifi|internet|router|switch|ap)/i.test(textLower)) tags.push('Redes');
+    if (/(energ[ií]a|el[eé]ctrico|toma|breaker|voltio|ups)/i.test(textLower)) tags.push('Energía');
+    return tags;
+  };
+
   const startDictation = (id: string, type: 'item' | 'activity') => {
     // @ts-ignore
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -82,9 +93,21 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       if (type === 'item') {
-        setItems(prev => prev.map(i => i.id === id ? { ...i, description: (i.description ? i.description + ' ' : '') + transcript } : i));
+        setItems(prev => prev.map(i => {
+          if (i.id === id) {
+            const newDesc = (i.description ? i.description + ' ' : '') + transcript;
+            return { ...i, description: newDesc, tags: autoTag(newDesc) };
+          }
+          return i;
+        }));
       } else {
-        setActivities(prev => prev.map(a => a.id === id ? { ...a, description: (a.description ? a.description + ' ' : '') + transcript } : a));
+        setActivities(prev => prev.map(a => {
+          if (a.id === id) {
+            const newDesc = (a.description ? a.description + ' ' : '') + transcript;
+            return { ...a, description: newDesc, tags: autoTag(newDesc) };
+          }
+          return a;
+        }));
       }
     };
     
@@ -557,7 +580,10 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                       <div className="flex flex-col sm:flex-row gap-3 p-3.5 bg-main rounded-xl border border-border">
                         <div className="flex-1 relative flex items-start">
                           <textarea value={item.description}
-                            onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, description: e.target.value } : i))}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setItems(items.map(i => i.id === item.id ? { ...i, description: val, tags: autoTag(val) } : i));
+                            }}
                             rows={2}
                             className="w-full bg-transparent text-sm font-medium outline-none pr-8 resize-none py-1" placeholder="Descripción de la tarea o servicio propuesto..." />
                           <button 
@@ -594,6 +620,17 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                           </button>
                         </div>
                       </div>
+
+                      {/* Etiquetas automáticas del ítem */}
+                      {item.tags && item.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {item.tags.map(tag => (
+                            <span key={tag} className="text-[8px] font-black uppercase tracking-tighter bg-cyan/10 text-cyan px-2 py-0.5 rounded-full border border-cyan/20">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       
                       {/* Cuadro de sugerencia IA para el ítem */}
                       {aiSuggestion?.id === item.id && (
@@ -703,7 +740,10 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                       <div className="space-y-4">
                         <div className="relative">
                           <textarea value={act.description}
-                            onChange={e => setActivities(activities.map(a => a.id === act.id ? { ...a, description: e.target.value } : a))}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setActivities(activities.map(a => a.id === act.id ? { ...a, description: val, tags: autoTag(val) } : a));
+                            }}
                             placeholder="Descripción detallada de la actividad realizada..."
                             className="w-full bg-deep border border-white/5 rounded-2xl p-4 pr-12 text-sm text-txt outline-none focus:border-brand/30 transition-all resize-none shadow-inner" rows={4} />
                           <button 
@@ -713,6 +753,17 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                             <Mic size={18} />
                           </button>
                         </div>
+
+                        {/* Etiquetas automáticas de la actividad */}
+                        {act.tags && act.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {act.tags.map(tag => (
+                              <span key={tag} className="text-[9px] font-black uppercase tracking-widest bg-brand/10 text-brand px-3 py-1 rounded-lg border border-brand/20">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         
                         {/* Botón de Análisis IA Prominente */}
                         {phase !== 'completed' && (
