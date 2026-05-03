@@ -100,26 +100,19 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Simular carga de base de datos
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 4500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) return <LoadingAnimation />;
   const [isSyncing, setIsSyncing] = useState(true);
   const { settings, updateSettings } = useSettings();
 
   useEffect(() => {
+    // Sincronizar base de datos real
     DataStore.syncWithAPI().then(() => {
       setIsSyncing(false);
+      // Dar un poco más de tiempo para que la animación se vea bien
+      setTimeout(() => setIsLoading(false), 2000);
     });
   }, []);
-  
-  if (!settings || isSyncing) return <div className="h-screen bg-deep flex items-center justify-center text-white font-bold animate-pulse">Cargando ecosistema y sincronizando base de datos...</div>;
+
+  if (isLoading || !settings || isSyncing) return <LoadingAnimation />;
 
   const stats = DataStore.getDashboardStats();
   const recentProjects = DataStore.getRecentProjects();
