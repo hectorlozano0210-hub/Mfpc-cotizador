@@ -106,11 +106,14 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
       let suggestions: string[] = [];
       let baseModifier = '';
       
-      // Contextual multipliers analysis
-      if (ctxLower.includes('altura') || height === 'high') baseModifier = ' (con recargo del 30% por trabajo en alturas)';
-      if (infra === 'industrial' || ctxLower.includes('industrial') || ctxLower.includes('tuberia') || ctxLower.includes('emt')) {
-          baseModifier += ' (con recargo del 30% por infraestructura compleja)';
-      }
+      // ─── Local Context Detection (Smarter Analysis) ───
+      const hasHeight = descLower.includes('altura') || descLower.includes('metros') && (parseInt(descLower.match(/(\d+)\s*metros/)?.[1] || '0') >= 3) || ctxLower.includes('altura') || height === 'high';
+      const isComplex = descLower.includes('industrial') || descLower.includes('centro comercial') || descLower.includes('tuberia') || descLower.includes('emt') || descLower.includes('canalizacion') || ctxLower.includes('tuberia') || infra === 'industrial';
+      const isLongDistance = descLower.includes('distancia') || (parseInt(descLower.match(/(\d+)\s*metros/)?.[1] || '0') > 50);
+
+      if (hasHeight) baseModifier += ' (recargo +30% altura)';
+      if (isComplex) baseModifier += ' (recargo +30% infra. compleja)';
+      if (isLongDistance) baseModifier += ' (recargo distancia extendida)';
 
       // 1. Equipos de Cómputo (Portátiles, PCs, Software)
       if (/(port[aá]til|computador|pc|laptop|macbook)/i.test(descLower)) {
@@ -143,16 +146,24 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
 
       // 3. CCTV y Seguridad
       if (/(cctv|c[aá]mara|dvr|nvr|hikvision|dahua)/i.test(descLower)) {
+        const qtyMatch = descLower.match(/(\d+)\s*(c[aá]maras|unidades|puntos)/);
+        const qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+
         if (/(ip|wifi|inal[aá]mbrica)/i.test(descLower)) {
-          suggestions.push(`Instalación Cámara IP/WiFi (Configuración básica): $50.000 - $90.000 COP / unidad${baseModifier}`);
+          suggestions.push(`Instalación Cámara IP/WiFi: $60.000 - $95.000 COP / unidad${baseModifier}`);
         } else if (/(instala)/i.test(descLower)) {
-          suggestions.push(`Instalación Cámara CCTV Cableada (Incluye canalización): $80.000 - $120.000 COP / unidad${baseModifier}`);
+          const unitMin = 85000 * (hasHeight ? 1.3 : 1) * (isComplex ? 1.3 : 1);
+          const unitMax = 130000 * (hasHeight ? 1.3 : 1) * (isComplex ? 1.3 : 1);
+          suggestions.push(`Instalación Cámara CCTV (Punto): $${unitMin.toLocaleString()} - $${unitMax.toLocaleString()} COP / unidad`);
+          if (qty > 1) {
+            suggestions.push(`TOTAL SUGERIDO (${qty} puntos): $${(unitMin * qty).toLocaleString()} - $${(unitMax * qty).toLocaleString()} COP`);
+          }
         }
         if (/(dvr|nvr|configuraci[oó]n)/i.test(descLower)) {
-          suggestions.push(`Configuración DVR/NVR y Red Móvil: $100.000 - $150.000 COP / sistema`);
+          suggestions.push(`Configuración DVR/NVR y Red: $120.000 - $180.000 COP / sistema`);
         }
         if (/(mantenimiento|limpieza|revisi[oó]n)/i.test(descLower) && /(c[aá]mara)/i.test(descLower)) {
-          suggestions.push(`Mantenimiento Preventivo de Cámara: $25.000 - $45.000 COP / unidad`);
+          suggestions.push(`Mantenimiento Preventivo: $35.000 - $55.000 COP / unidad`);
         }
       }
 
