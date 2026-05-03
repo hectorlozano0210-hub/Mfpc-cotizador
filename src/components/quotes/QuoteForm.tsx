@@ -555,14 +555,15 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                   {items.map(item => (
                     <div key={item.id} className="flex flex-col gap-2">
                       <div className="flex flex-col sm:flex-row gap-3 p-3.5 bg-main rounded-xl border border-border">
-                        <div className="flex-1 relative flex items-center">
-                          <input value={item.description}
+                        <div className="flex-1 relative flex items-start">
+                          <textarea value={item.description}
                             onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, description: e.target.value } : i))}
-                            className="w-full bg-transparent text-sm font-medium outline-none pr-8" placeholder="Descripción de la tarea" />
+                            rows={2}
+                            className="w-full bg-transparent text-sm font-medium outline-none pr-8 resize-none py-1" placeholder="Descripción de la tarea o servicio propuesto..." />
                           <button 
                             onClick={() => startDictation(item.id, 'item')}
                             title="Dictar por voz"
-                            className={`absolute right-0 p-1.5 rounded-lg transition-colors ${dictatingId === item.id ? 'text-rose animate-pulse' : 'text-txt-muted hover:text-cyan'}`}>
+                            className={`absolute right-0 top-1 p-1.5 rounded-lg transition-colors ${dictatingId === item.id ? 'text-rose animate-pulse' : 'text-txt-muted hover:text-cyan'}`}>
                             <Mic size={16} />
                           </button>
                         </div>
@@ -704,7 +705,7 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                           <textarea value={act.description}
                             onChange={e => setActivities(activities.map(a => a.id === act.id ? { ...a, description: e.target.value } : a))}
                             placeholder="Descripción detallada de la actividad realizada..."
-                            className="w-full bg-deep border border-white/5 rounded-2xl p-4 pr-12 text-sm text-txt outline-none focus:border-brand/30 transition-all resize-none shadow-inner" rows={3} />
+                            className="w-full bg-deep border border-white/5 rounded-2xl p-4 pr-12 text-sm text-txt outline-none focus:border-brand/30 transition-all resize-none shadow-inner" rows={4} />
                           <button 
                             onClick={() => startDictation(act.id, 'activity')}
                             title="Dictar por voz"
