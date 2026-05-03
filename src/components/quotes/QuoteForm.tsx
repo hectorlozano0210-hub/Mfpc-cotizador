@@ -60,14 +60,43 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [showTabulators, setShowTabulators] = useState(false);
-  const [analyzingAct, setAnalyzingAct] = useState<string | null>(null);
-  const [aiSuggestion, setAiSuggestion] = useState<{ actId: string, message: string } | null>(null);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<{ id: string, message: string } | null>(null);
+  const [dictatingId, setDictatingId] = useState<string | null>(null);
 
   const phaseIndex = PHASE_ORDER.indexOf(phase);
 
-  const handleAIAnalysis = (actId: string, description: string) => {
+  const startDictation = (id: string, type: 'item' | 'activity') => {
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Tu navegador no soporta reconocimiento de voz. Usa Google Chrome, Edge o Safari.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-CO';
+    recognition.interimResults = false;
+    
+    recognition.onstart = () => setDictatingId(id);
+    
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      if (type === 'item') {
+        setItems(prev => prev.map(i => i.id === id ? { ...i, description: (i.description ? i.description + ' ' : '') + transcript } : i));
+      } else {
+        setActivities(prev => prev.map(a => a.id === id ? { ...a, description: (a.description ? a.description + ' ' : '') + transcript } : a));
+      }
+    };
+    
+    recognition.onerror = () => setDictatingId(null);
+    recognition.onend = () => setDictatingId(null);
+    
+    recognition.start();
+  };
+
+  const handleAIAnalysis = (id: string, description: string) => {
     if (!description.trim()) return;
-    setAnalyzingAct(actId);
+    setAnalyzingId(id);
     setAiSuggestion(null);
     
     setTimeout(() => {
@@ -157,8 +186,8 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
       // Format bullet points
       const message = `Mercado Colombiano Promedio:\n• ` + suggestions.join('\n• ');
       
-      setAiSuggestion({ actId, message });
-      setAnalyzingAct(null);
+      setAiSuggestion({ id, message });
+      setAnalyzingId(null);
     }, 1500);
   };
 
@@ -513,22 +542,56 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                 </div>
                 <div className="space-y-2.5">
                   {items.map(item => (
-                    <div key={item.id} className="flex flex-col sm:flex-row gap-3 p-3.5 bg-main rounded-xl border border-border">
-                      <input value={item.description}
-                        onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, description: e.target.value } : i))}
-                        className="flex-1 bg-transparent text-sm font-medium outline-none min-w-0" placeholder="Descripción de la tarea" />
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="flex items-center bg-deep px-3 py-1.5 rounded-lg border border-border w-28">
-                          <span className="text-[10px] text-txt-muted mr-1">$</span>
-                          <input type="number" value={item.unitPrice} onChange={e => {
-                            const p = parseInt(e.target.value) || 0;
-                            setItems(items.map(i => i.id === item.id ? { ...i, unitPrice: p, total: p * i.quantity } : i));
-                          }} className="bg-transparent text-xs text-center font-bold text-cyan w-full outline-none" />
+                    <div key={item.id} className="flex flex-col gap-2">
+                      <div className="flex flex-col sm:flex-row gap-3 p-3.5 bg-main rounded-xl border border-border">
+                        <div className="flex-1 relative flex items-center">
+                          <input value={item.description}
+                            onChange={e => setItems(items.map(i => i.id === item.id ? { ...i, description: e.target.value } : i))}
+                            className="w-full bg-transparent text-sm font-medium outline-none pr-8" placeholder="Descripción de la tarea" />
+                          <button 
+                            onClick={() => startDictation(item.id, 'item')}
+                            title="Dictar por voz"
+                            className={`absolute right-0 p-1.5 rounded-lg transition-colors ${dictatingId === item.id ? 'text-rose animate-pulse' : 'text-txt-muted hover:text-cyan'}`}>
+                            <Mic size={16} />
+                          </button>
                         </div>
-                        <button onClick={() => setItems(items.filter(i => i.id !== item.id))} className="text-txt-muted hover:text-rose transition-colors p-1">
-                          <Trash2 size={15} />
-                        </button>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {/* Botón IA Mini para el ítem */}
+                          <button
+                            onClick={() => handleAIAnalysis(item.id, item.description)}
+                            disabled={analyzingId === item.id || !item.description}
+                            className={`p-1.5 rounded-lg text-xs transition-all border ${
+                              analyzingId === item.id 
+                                ? 'bg-cyan/20 border-cyan text-cyan animate-pulse' 
+                                : 'bg-brand/10 border-brand/20 text-brand hover:bg-brand/20 hover:border-brand/40'
+                            }`}
+                            title="Análisis IA de Precio"
+                          >
+                            ✨
+                          </button>
+                          
+                          <div className="flex items-center bg-deep px-3 py-1.5 rounded-lg border border-border w-28">
+                            <span className="text-[10px] text-txt-muted mr-1">$</span>
+                            <input type="number" value={item.unitPrice} onChange={e => {
+                              const p = parseInt(e.target.value) || 0;
+                              setItems(items.map(i => i.id === item.id ? { ...i, unitPrice: p, total: p * i.quantity } : i));
+                            }} className="bg-transparent text-xs text-center font-bold text-cyan w-full outline-none" />
+                          </div>
+                          <button onClick={() => setItems(items.filter(i => i.id !== item.id))} className="text-txt-muted hover:text-rose transition-colors p-1">
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </div>
+                      
+                      {/* Cuadro de sugerencia IA para el ítem */}
+                      {aiSuggestion?.id === item.id && (
+                        <div className="bg-brand/10 border border-brand/20 p-3 rounded-xl relative">
+                          <button onClick={() => setAiSuggestion(null)} className="absolute top-2 right-2 text-txt-muted hover:text-white">
+                            <X size={14} />
+                          </button>
+                          <p className="text-[10px] text-brand font-mono whitespace-pre-wrap">{aiSuggestion.message}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -626,25 +689,43 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                       </div>
 
                       <div className="space-y-4">
-                        <textarea value={act.description}
-                          onChange={e => setActivities(activities.map(a => a.id === act.id ? { ...a, description: e.target.value } : a))}
-                          placeholder="Descripción detallada de la actividad realizada..."
-                          className="w-full bg-deep border border-white/5 rounded-2xl p-4 text-sm text-txt outline-none focus:border-brand/30 transition-all resize-none shadow-inner" rows={3} />
+                        <div className="relative">
+                          <textarea value={act.description}
+                            onChange={e => setActivities(activities.map(a => a.id === act.id ? { ...a, description: e.target.value } : a))}
+                            placeholder="Descripción detallada de la actividad realizada..."
+                            className="w-full bg-deep border border-white/5 rounded-2xl p-4 pr-12 text-sm text-txt outline-none focus:border-brand/30 transition-all resize-none shadow-inner" rows={3} />
+                          <button 
+                            onClick={() => startDictation(act.id, 'activity')}
+                            title="Dictar por voz"
+                            className={`absolute right-4 top-4 p-2 rounded-xl bg-main border transition-colors ${dictatingId === act.id ? 'border-rose text-rose animate-pulse' : 'border-border text-txt-muted hover:text-cyan hover:border-cyan/30'}`}>
+                            <Mic size={18} />
+                          </button>
+                        </div>
                         
                         {/* Botón de Análisis IA Prominente */}
                         {phase !== 'completed' && (
                           <div className="flex justify-end">
                             <button
                               onClick={() => handleAIAnalysis(act.id, act.description)}
-                              disabled={analyzingAct === act.id || !act.description}
+                              disabled={analyzingId === act.id || !act.description}
                               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                                analyzingAct === act.id 
+                                analyzingId === act.id 
                                   ? 'bg-cyan/20 border-cyan text-cyan animate-pulse' 
                                   : 'bg-brand/10 border-brand/20 text-brand hover:bg-brand/20 hover:border-brand/40'
                               }`}
                             >
-                              {analyzingAct === act.id ? 'Analizando...' : '✨ Analizar Precio con IA'}
+                              {analyzingId === act.id ? 'Analizando...' : '✨ Analizar Precio con IA'}
                             </button>
+                          </div>
+                        )}
+
+                        {/* Cuadro de sugerencia IA para la actividad */}
+                        {aiSuggestion?.id === act.id && (
+                          <div className="bg-brand/10 border border-brand/20 p-4 rounded-2xl relative">
+                            <button onClick={() => setAiSuggestion(null)} className="absolute top-2 right-2 text-txt-muted hover:text-white">
+                              <X size={16} />
+                            </button>
+                            <p className="text-xs text-brand font-mono whitespace-pre-wrap">{aiSuggestion.message}</p>
                           </div>
                         )}
                         
