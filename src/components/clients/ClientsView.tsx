@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Users, Plus, Search, Mail, Phone, MapPin, Trash2, Edit2, 
-  ExternalLink, ChevronRight, X, Building2, UserPlus
+  Users, Search, Mail, Phone, MapPin, Trash2, Edit2, 
+  ChevronRight, X, UserPlus
 } from 'lucide-react';
 import { DataStore } from '../../services/db';
 import type { Client } from '../../types';

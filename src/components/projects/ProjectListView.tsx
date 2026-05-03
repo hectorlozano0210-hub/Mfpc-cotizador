@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FileText, Search, Filter, Clock, CheckCircle2, AlertCircle, 
-  ChevronRight, MoreVertical, Download, MessageCircle, Edit3, Trash2,
-  Calendar, CreditCard, ClipboardList
+  FileText, Search, Clock, Download, MessageCircle, Edit3,
+  Calendar, CreditCard, ClipboardList, AlertCircle
 } from 'lucide-react';
 import { DataStore } from '../../services/db';
 import type { Project } from '../../types';

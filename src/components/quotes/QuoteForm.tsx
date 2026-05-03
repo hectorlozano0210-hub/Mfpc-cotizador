@@ -5,7 +5,7 @@ import {
   User, Clock as ClockIcon, Check, Briefcase, Hammer, Truck,
   ChevronRight, ChevronLeft, Star, X, CheckCircle2
 } from 'lucide-react';
-import type { Project, QuoteItem, ResourceItem, ActivityLog, AppSettings } from '../../types/index';
+import type { Project, QuoteItem, ResourceItem, ActivityLog, AppSettings, DifficultyConfig } from '../../types/index';
 import { useAudioAssistant } from '../../hooks/useAudioAssistant';
 import { SignaturePad } from '../ui/SignaturePad';
 import { BRANDING } from '../../hooks/useSettings';

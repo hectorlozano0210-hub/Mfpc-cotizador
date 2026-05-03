@@ -15,7 +15,8 @@ const DEFAULT_SETTINGS: AppSettings = {
       { name: 'Cámara Bala 1080p', price: 95000 },
       { name: 'DVR 4 Canales', price: 280000 }
     ]
-  }
+  },
+  inventoryCategories: ['Cámaras', 'Redes', 'Energía', 'Herramientas', 'Computación', 'Otros']
 };
 
 export const useSettings = () => {
@@ -34,7 +35,8 @@ export const useSettings = () => {
           scaffoldingDaily: parsed?.prices?.scaffoldingDaily ?? DEFAULT_SETTINGS.prices.scaffoldingDaily,
           impactGunDaily: parsed?.prices?.impactGunDaily ?? DEFAULT_SETTINGS.prices.impactGunDaily,
           materials: Array.isArray(parsed?.prices?.materials) ? parsed.prices.materials : DEFAULT_SETTINGS.prices.materials
-        }
+        },
+        inventoryCategories: Array.isArray(parsed?.inventoryCategories) ? parsed.inventoryCategories : DEFAULT_SETTINGS.inventoryCategories
       };
       
       return merged;
