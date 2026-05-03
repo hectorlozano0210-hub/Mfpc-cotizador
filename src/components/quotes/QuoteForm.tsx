@@ -138,89 +138,51 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
       if (isComplex) baseModifier += ' (recargo +30% infra. compleja)';
       if (isLongDistance) baseModifier += ' (recargo distancia extendida)';
 
-      // 1. Equipos de Cómputo (Portátiles, PCs, Software)
-      if (/(port[aá]til|computador|pc|laptop|macbook)/i.test(descLower)) {
-        if (/(virus|malware|troyano|escaneo|borrado|temporales|cookies|optimiza)/i.test(descLower)) {
-          suggestions.push(`Optimización y Limpieza de Software (Virus/Temporales): $50.000 - $80.000 COP`);
-        }
-        if (/(formateo|windows|sistema operativo|office|instala.*software)/i.test(descLower)) {
-          suggestions.push(`Formateo e Instalación de S.O. y Programas Básicos: $70.000 - $120.000 COP`);
-        }
-        if (/(mantenimiento.*f[ií]sico|limpieza.*interna|pasta t[eé]rmica)/i.test(descLower)) {
-          suggestions.push(`Mantenimiento Preventivo (Limpieza interna y pasta térmica): $60.000 - $90.000 COP`);
-        }
-        if (/(revisi[oó]n|diagn[oó]stico|falla)/i.test(descLower)) {
-          suggestions.push(`Diagnóstico de Hardware/Software: $40.000 - $60.000 COP`);
-        }
-      }
-
-      // 2. Trabajos Eléctricos
-      if (/(energ[ií]a|el[eé]ctric|voltio|12v|110v|220v|toma|corriente|breaker|tablero)/i.test(descLower)) {
-        if (/(punto|toma)/i.test(descLower)) {
-          suggestions.push(`Punto Eléctrico / Toma de Corriente: $35.000 - $55.000 COP / unidad${baseModifier}`);
-        }
-        if (/(breaker|tablero|caja)/i.test(descLower)) {
-          suggestions.push(`Instalación de Breaker / Tablero Eléctrico: $80.000 - $150.000 COP${baseModifier}`);
-        }
-        if (/(cableado|tirar cable)/i.test(descLower) && !descLower.includes('red')) {
-          suggestions.push(`Tendido de Cableado Eléctrico: $4.000 - $8.000 COP / metro lineal${baseModifier}`);
-        }
-      }
-
-      // 3. CCTV y Seguridad
-      if (/(cctv|c[aá]mara|dvr|nvr|hikvision|dahua)/i.test(descLower)) {
-        const qtyMatch = descLower.match(/(\d+)\s*(c[aá]maras|unidades|puntos)/);
-        const qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
-
-        if (/(ip|wifi|inal[aá]mbrica)/i.test(descLower)) {
-          suggestions.push(`Instalación Cámara IP/WiFi: $60.000 - $95.000 COP / unidad${baseModifier}`);
-        } else if (/(instala)/i.test(descLower)) {
-          const unitMin = 85000 * (hasHeight ? 1.3 : 1) * (isComplex ? 1.3 : 1);
-          const unitMax = 130000 * (hasHeight ? 1.3 : 1) * (isComplex ? 1.3 : 1);
-          suggestions.push(`Instalación Cámara CCTV (Punto): $${unitMin.toLocaleString()} - $${unitMax.toLocaleString()} COP / unidad`);
-          if (qty > 1) {
-            suggestions.push(`TOTAL SUGERIDO (${qty} puntos): $${(unitMin * qty).toLocaleString()} - $${(unitMax * qty).toLocaleString()} COP`);
-          }
-        }
-        if (/(dvr|nvr|configuraci[oó]n)/i.test(descLower)) {
-          suggestions.push(`Configuración DVR/NVR y Red: $120.000 - $180.000 COP / sistema`);
-        }
-        if (/(mantenimiento|limpieza|revisi[oó]n)/i.test(descLower) && /(c[aá]mara)/i.test(descLower)) {
-          suggestions.push(`Mantenimiento Preventivo: $35.000 - $55.000 COP / unidad`);
-        }
-      }
-
-      // 4. Alarmas y Sensores
-      if (/(alarma|sensor|movimiento|sirena|panel.*alarma|biom[eé]trico|acceso)/i.test(descLower)) {
-        suggestions.push(`Instalación de Sensor/Dispositivo de Alarma: $40.000 - $70.000 COP / unidad${baseModifier}`);
-        if (/(panel|teclado|cerebro)/i.test(descLower)) {
-          suggestions.push(`Configuración de Panel de Alarma / Control de Acceso: $120.000 - $200.000 COP`);
-        }
-      }
-
-      // 5. Redes y Telecomunicaciones
-      if (/(red|router|switch|access point|wifi|rack|patch|utp|datos|internet)/i.test(descLower)) {
-        if (/(punto|jack|rj45|roseta)/i.test(descLower)) {
-          suggestions.push(`Instalación de Punto de Red (Voz/Datos): $60.000 - $90.000 COP / punto${baseModifier}`);
-        }
-        if (/(router|access point|ap|repetidor)/i.test(descLower)) {
-          suggestions.push(`Configuración Access Point / Router: $70.000 - $100.000 COP`);
-        }
-        if (/(rack|patch panel|organiza)/i.test(descLower)) {
-          suggestions.push(`Organización/Peinado de Rack: $60.000 - $100.000 COP / hora`);
-        }
-      }
-
-      // Default fallback if no matches
-      if (suggestions.length === 0) {
-        suggestions.push(`Visita Técnica / Diagnóstico General: $70.000 - $90.000 COP`);
-        suggestions.push(`Servicio Técnico / Hora Laboral Básica: $40.000 - $60.000 COP / hora${baseModifier}`);
-      }
-
-      // Format bullet points
-      const message = `Mercado Colombiano Promedio:\n• ` + suggestions.join('\n• ');
+      // ─── Humanized Narrative Generation ───
+      const heightVal = descLower.match(/(\d+)\s*metros/)?.[1] || (hasHeight ? "3+" : null);
+      const qtyVal = descLower.match(/(\d+)\s*(c[aá]maras|unidades|puntos|pcs|computadores|tomas|sensores)/)?.[1] || "1";
       
-      setAiSuggestion({ id, message });
+      let narrative = "¡Hola! He analizado tu descripción. ";
+      
+      if (/(cctv|c[aá]mara)/i.test(descLower)) {
+        narrative += `Veo que se trata de la instalación de ${qtyVal} cámara(s). `;
+        if (hasHeight) narrative += `Al ser un trabajo a una altura de ${heightVal} metros, el riesgo aumenta el valor base en un 30%. `;
+        if (isComplex) narrative += `La infraestructura (como tubería EMT) también añade un recargo por complejidad. `;
+        
+        const unitMin = 85000 * (hasHeight ? 1.3 : 1) * (isComplex ? 1.3 : 1);
+        const unitMax = 135000 * (hasHeight ? 1.3 : 1) * (isComplex ? 1.3 : 1);
+        
+        narrative += `\n\nEn el mercado colombiano actual, este trabajo se cotiza entre $${unitMin.toLocaleString()} y $${unitMax.toLocaleString()} por unidad. `;
+        if (parseInt(qtyVal) > 1) {
+          narrative += `Para el total de los ${qtyVal} puntos, el rango sugerido es de $${(unitMin * parseInt(qtyVal)).toLocaleString()} a $${(unitMax * parseInt(qtyVal)).toLocaleString()}.`;
+        }
+      } 
+      else if (/(port[aá]til|computador|pc)/i.test(descLower)) {
+        narrative += `Entiendo que es un servicio técnico de computación. `;
+        if (/(formateo|sistema)/i.test(descLower)) {
+          narrative += `Para formateo e instalación de software, el precio promedio es de $80.000 a $120.000. `;
+        } else {
+          narrative += `Un mantenimiento preventivo físico suele estar entre $60.000 y $90.000 en Colombia. `;
+        }
+      }
+      else if (/(energ[ií]a|el[eé]ctric|toma)/i.test(descLower)) {
+        narrative += `Se identifica una labor eléctrica. `;
+        const unitMin = 45000 * (hasHeight ? 1.3 : 1);
+        const unitMax = 75000 * (hasHeight ? 1.3 : 1);
+        narrative += `El punto eléctrico se cobra usualmente entre $${unitMin.toLocaleString()} y $${unitMax.toLocaleString()}.`;
+      }
+      else if (/(red|wifi|datos)/i.test(descLower)) {
+        narrative += `Es una labor de redes de datos. `;
+        narrative += `La instalación de un punto de red con certificación básica oscila entre $70.000 y $110.000 COP.`;
+      }
+      else {
+        narrative += `Parece ser una visita técnica o soporte general. `;
+        narrative += `El valor base por hora técnica o visita en Colombia está entre $50.000 y $90.000 COP.`;
+      }
+
+      narrative += "\n\n¿Deseas que ajustemos algún valor específico según tu criterio comercial?";
+      
+      setAiSuggestion({ id, message: narrative });
       setAnalyzingId(null);
     }, 1500);
   };
