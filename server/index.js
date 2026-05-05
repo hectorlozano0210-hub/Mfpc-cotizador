@@ -201,32 +201,33 @@ app.post('/api/projects', async (req, res) => {
     const { id, reference, clientId, date, time, status, difficultyConfig, signature, total, items, resources, activities } = req.body;
     
     // 1. Upsert Project
+    const safeDiffConfig = difficultyConfig ? JSON.stringify(difficultyConfig) : null;
     await connection.query(
       `INSERT INTO projects (id, reference, client_id, date, time, status, difficulty_config, signature, total) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE reference=?, client_id=?, date=?, time=?, status=?, difficulty_config=?, signature=?, total=?`,
-      [id, reference, clientId, date, time, status, JSON.stringify(difficultyConfig), signature, total,
-       reference, clientId, date, time, status, JSON.stringify(difficultyConfig), signature, total]
+      [id, reference || '', clientId || null, date || '', time || '', status || 'survey', safeDiffConfig, signature || null, total || 0,
+       reference || '', clientId || null, date || '', time || '', status || 'survey', safeDiffConfig, signature || null, total || 0]
     );
 
     // 2. Sync Items (Delete old, insert new)
     await connection.query('DELETE FROM project_items WHERE project_id = ?', [id]);
     if (items && items.length > 0) {
-      const itemsValues = items.map(i => [i.id || uuid(), id, i.description, i.quantity, i.unitPrice, i.difficultyMultiplier, i.total]);
+      const itemsValues = items.map(i => [i.id || uuid(), id, i.description || '', i.quantity || 1, i.unitPrice || 0, i.difficultyMultiplier || 1, i.total || 0]);
       await connection.query('INSERT INTO project_items (id, project_id, description, quantity, unit_price, difficulty_multiplier, total) VALUES ?', [itemsValues]);
     }
 
     // 3. Sync Resources
     await connection.query('DELETE FROM project_resources WHERE project_id = ?', [id]);
     if (resources && resources.length > 0) {
-      const resValues = resources.map(r => [r.id || uuid(), id, r.name, r.type, r.quantity, r.unitPrice, r.days || 1, r.total]);
+      const resValues = resources.map(r => [r.id || uuid(), id, r.name || '', r.type || 'material', r.quantity || 1, r.unitPrice || 0, r.days || 1, r.total || 0]);
       await connection.query('INSERT INTO project_resources (id, project_id, name, type, quantity, unit_price, days, total) VALUES ?', [resValues]);
     }
 
     // 4. Sync Activities
     await connection.query('DELETE FROM project_activities WHERE project_id = ?', [id]);
     if (activities && activities.length > 0) {
-      const actValues = activities.map(a => [a.id || uuid(), id, a.date, a.time, a.description, a.estimatedHours || 0, a.price || 0, a.authorizedBy, a.recipientName, a.recipientSignature, JSON.stringify(a.images || [])]);
+      const actValues = activities.map(a => [a.id || uuid(), id, a.date || '', a.time || '', a.description || '', a.estimatedHours || 0, a.price || 0, a.authorizedBy || '', a.recipientName || null, a.recipientSignature || null, JSON.stringify(a.images || [])]);
       await connection.query('INSERT INTO project_activities (id, project_id, date, time, description, estimated_hours, price, authorized_by, recipient_name, recipient_signature, images) VALUES ?', [actValues]);
     }
 
