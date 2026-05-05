@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Mic, ShieldAlert, FileDown, MessageCircle, Calendar,
   User, Clock as ClockIcon, Check, Briefcase, Hammer, Truck,
-  ChevronRight, ChevronLeft, Star, X, CheckCircle2
+  ChevronRight, ChevronLeft, Star, X, CheckCircle2, Volume2
 } from 'lucide-react';
 import type { Project, QuoteItem, ResourceItem, ActivityLog, AppSettings, DifficultyConfig } from '../../types/index';
 import { useAudioAssistant } from '../../hooks/useAudioAssistant';
@@ -115,6 +115,18 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
     recognition.onend = () => setDictatingId(null);
     
     recognition.start();
+  };
+
+  const speakText = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-CO';
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      alert('Tu navegador no soporta lectura de texto en voz alta.');
+    }
   };
 
   const handleAIAnalysis = (id: string, description: string) => {
@@ -597,10 +609,15 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                       {/* Cuadro de sugerencia IA para el ítem */}
                       {aiSuggestion?.id === item.id && (
                         <div className="bg-brand/10 border border-brand/20 p-3 rounded-xl relative">
-                          <button onClick={() => setAiSuggestion(null)} className="absolute top-2 right-2 text-txt-muted hover:text-white">
-                            <X size={14} />
-                          </button>
-                          <p className="text-[10px] text-brand font-mono whitespace-pre-wrap">{aiSuggestion.message}</p>
+                          <div className="absolute top-2 right-2 flex items-center gap-2">
+                            <button onClick={() => speakText(aiSuggestion.message)} className="text-brand hover:text-white transition-colors" title="Leer en voz alta">
+                              <Volume2 size={14} />
+                            </button>
+                            <button onClick={() => { setAiSuggestion(null); window.speechSynthesis.cancel(); }} className="text-txt-muted hover:text-white transition-colors">
+                              <X size={14} />
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-brand font-mono whitespace-pre-wrap pr-12">{aiSuggestion.message}</p>
                         </div>
                       )}
                     </div>
@@ -684,9 +701,9 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                       <div className="w-3 h-3 rounded-full bg-cyan shadow-[0_0_10px_rgba(6,182,212,0.5)] shrink-0" />
                       <div className="w-0.5 flex-1 bg-white/5 my-2" />
                     </div>
-                    <div className="flex-1 bg-deep/40 p-6 rounded-[2rem] border border-white/5 space-y-5 transition-all hover:bg-deep/60 hover:border-cyan/20">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-deep/40 p-4 sm:p-6 rounded-[2rem] border border-white/5 space-y-4 sm:space-y-5 transition-all hover:bg-deep/60 hover:border-cyan/20">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
                           <input type="date" value={act.date} 
                             onChange={e => setActivities(activities.map(a => a.id === act.id ? { ...a, date: e.target.value } : a))}
                             className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-black text-cyan outline-none uppercase" />
@@ -747,10 +764,15 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                         {/* Cuadro de sugerencia IA para la actividad */}
                         {aiSuggestion?.id === act.id && (
                           <div className="bg-brand/10 border border-brand/20 p-4 rounded-2xl relative">
-                            <button onClick={() => setAiSuggestion(null)} className="absolute top-2 right-2 text-txt-muted hover:text-white">
-                              <X size={16} />
-                            </button>
-                            <p className="text-xs text-brand font-mono whitespace-pre-wrap">{aiSuggestion.message}</p>
+                            <div className="absolute top-3 right-3 flex items-center gap-3">
+                              <button onClick={() => speakText(aiSuggestion.message)} className="text-brand hover:text-white transition-colors" title="Leer en voz alta">
+                                <Volume2 size={16} />
+                              </button>
+                              <button onClick={() => { setAiSuggestion(null); window.speechSynthesis.cancel(); }} className="text-txt-muted hover:text-white transition-colors">
+                                <X size={16} />
+                              </button>
+                            </div>
+                            <p className="text-xs text-brand font-mono whitespace-pre-wrap pr-16">{aiSuggestion.message}</p>
                           </div>
                         )}
                         
