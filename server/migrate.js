@@ -37,6 +37,20 @@ async function migrate() {
         }
     }
 
+    // 4. Create licenses table for App Security Gatekeeper
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS licenses (
+        id VARCHAR(36) PRIMARY KEY,
+        app_name VARCHAR(50) NOT NULL,
+        license_key VARCHAR(100) UNIQUE NOT NULL,
+        device_id VARCHAR(100),
+        status ENUM('active', 'revoked', 'expired') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP NULL
+      );
+    `);
+    console.log('Ensured licenses table exists');
+
     console.log('Migration completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

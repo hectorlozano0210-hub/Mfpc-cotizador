@@ -61,10 +61,60 @@ app.get('/api/migrate', async (req, res) => {
       logs.push('Images column failed or already exists: ' + e.message);
     }
 
+    try {
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS licenses (
+          id VARCHAR(36) PRIMARY KEY,
+          app_name VARCHAR(50) NOT NULL,
+          license_key VARCHAR(100) UNIQUE NOT NULL,
+          device_id VARCHAR(100),
+          status ENUM('active', 'revoked', 'expired') DEFAULT 'active',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          expires_at TIMESTAMP NULL
+        );
+      `);
+      logs.push('Ensured licenses table exists');
+    } catch (e) {
+      logs.push('Licenses table creation failed: ' + e.message);
+    }
+
     connection.release();
     res.json({ status: 'ok', logs });
   } catch (error) {
     res.status(500).json({ status: 'error', error: error.message });
+  }
+});
+
+/* ════════════════════════════════════════════════════════════
+   AUTH & LICENSES API
+   ════════════════════════════════════════════════════════════ */
+app.post('/api/auth/verify', async (req, res) => {
+  try {
+    const { licenseKey, deviceId, appName } = req.body;
+    if (!licenseKey || !deviceId) {
+      return res.status(400).json({ valid: false, message: 'Faltan credenciales.' });
+    }
+
+    const [rows] = await pool.query('SELECT * FROM licenses WHERE license_key = ? AND app_name = ? LIMIT 1', [licenseKey, appName || 'Cotizador Pro']);
+    const license = rows[0];
+
+    if (!license) return res.status(404).json({ valid: false, message: 'Licencia no encontrada o inválida para esta App.' });
+    if (license.status !== 'active') return res.status(403).json({ valid: false, message: `Licencia ${license.status}. Contacte soporte.` });
+    if (license.expires_at && new Date(license.expires_at) < new Date()) return res.status(403).json({ valid: false, message: 'Licencia expirada.' });
+
+    // Check device lock
+    if (license.device_id && license.device_id !== deviceId) {
+      return res.status(403).json({ valid: false, message: 'Esta licencia ya está vinculada a otro dispositivo.' });
+    }
+
+    // Register device if first time
+    if (!license.device_id) {
+      await pool.query('UPDATE licenses SET device_id = ? WHERE id = ?', [deviceId, license.id]);
+    }
+
+    res.json({ valid: true, message: 'Acceso concedido.' });
+  } catch (error) {
+    res.status(500).json({ valid: false, error: error.message });
   }
 });
 

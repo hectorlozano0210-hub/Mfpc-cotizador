@@ -93,6 +93,15 @@ export interface Project {
 }
 
 export interface AppSettings {
+  companyProfile: {
+    name: string;
+    nit: string;
+    address: string;
+    phone: string;
+    email: string;
+    logoUrl: string;
+    footerText: string;
+  };
   prices: {
     helperDaily: number;
     ladderDaily: number;

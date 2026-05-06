@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import type { AppSettings } from '../types';
 
 const DEFAULT_SETTINGS: AppSettings = {
+  companyProfile: {
+    name: 'Master FixPC',
+    nit: '123456789-0',
+    address: 'Calle Principal #123, Ciudad',
+    phone: '+57 300 000 0000',
+    email: 'contacto@masterfixpc.com',
+    logoUrl: '/logo.png',
+    footerText: 'Este documento no representa una factura de venta. Válido por 15 días.',
+  },
   prices: {
     helperDaily: 60000,
     ladderDaily: 15000,
@@ -29,6 +38,15 @@ export const useSettings = () => {
       
       // Deep structural validation and merge
       const merged: AppSettings = {
+        companyProfile: {
+          name: parsed?.companyProfile?.name ?? DEFAULT_SETTINGS.companyProfile.name,
+          nit: parsed?.companyProfile?.nit ?? DEFAULT_SETTINGS.companyProfile.nit,
+          address: parsed?.companyProfile?.address ?? DEFAULT_SETTINGS.companyProfile.address,
+          phone: parsed?.companyProfile?.phone ?? DEFAULT_SETTINGS.companyProfile.phone,
+          email: parsed?.companyProfile?.email ?? DEFAULT_SETTINGS.companyProfile.email,
+          logoUrl: parsed?.companyProfile?.logoUrl ?? DEFAULT_SETTINGS.companyProfile.logoUrl,
+          footerText: parsed?.companyProfile?.footerText ?? DEFAULT_SETTINGS.companyProfile.footerText,
+        },
         prices: {
           helperDaily: parsed?.prices?.helperDaily ?? DEFAULT_SETTINGS.prices.helperDaily,
           ladderDaily: parsed?.prices?.ladderDaily ?? DEFAULT_SETTINGS.prices.ladderDaily,

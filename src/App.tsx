@@ -371,9 +371,93 @@ function App() {
             {activeTab === 'settings' && (
               <motion.div key="settings" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="space-y-12">
                 <div>
-                  <h1 className="text-4xl font-bold text-txt mb-2 font-heading tracking-tight">Estructura de Precios</h1>
-                  <p className="text-txt-secondary text-lg font-medium">Controla los costos base para el cálculo automático de proyectos.</p>
+                  <h1 className="text-4xl font-bold text-txt mb-2 font-heading tracking-tight">Estructura de Precios y Perfil</h1>
+                  <p className="text-txt-secondary text-lg font-medium">Controla los costos base y la identidad gráfica de tus documentos (Marca Blanca).</p>
                 </div>
+
+                {/* ─── COMPANY PROFILE (MARCA BLANCA) ─── */}
+                <motion.div className="card space-y-8 border-brand/20 bg-brand/5 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-brand/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+                  
+                  <div className="relative z-10">
+                    <h3 className="text-xl font-bold text-brand flex items-center gap-3 pb-6 border-b border-brand/20 font-heading">
+                      <Briefcase size={22} /> Identidad Corporativa (Marca Blanca)
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                      {/* Name */}
+                      <div className="group">
+                        <label className="text-[10px] uppercase font-black text-txt-muted tracking-[0.2em] mb-2.5 block group-focus-within:text-brand transition-colors">
+                          Nombre de la Empresa
+                        </label>
+                        <input type="text" value={settings.companyProfile?.name || ''}
+                          onChange={(e) => updateSettings({ ...settings, companyProfile: { ...settings.companyProfile, name: e.target.value } })}
+                          className="w-full bg-deep/50 border border-white/5 rounded-2xl px-5 py-3 text-txt font-medium focus:border-brand/50 outline-none transition-all" />
+                      </div>
+                      
+                      {/* NIT */}
+                      <div className="group">
+                        <label className="text-[10px] uppercase font-black text-txt-muted tracking-[0.2em] mb-2.5 block group-focus-within:text-brand transition-colors">
+                          NIT / RUT
+                        </label>
+                        <input type="text" value={settings.companyProfile?.nit || ''}
+                          onChange={(e) => updateSettings({ ...settings, companyProfile: { ...settings.companyProfile, nit: e.target.value } })}
+                          className="w-full bg-deep/50 border border-white/5 rounded-2xl px-5 py-3 text-txt font-medium focus:border-brand/50 outline-none transition-all" />
+                      </div>
+                      
+                      {/* Logo URL */}
+                      <div className="group">
+                        <label className="text-[10px] uppercase font-black text-txt-muted tracking-[0.2em] mb-2.5 block group-focus-within:text-brand transition-colors">
+                          URL del Logo
+                        </label>
+                        <input type="text" value={settings.companyProfile?.logoUrl || ''}
+                          onChange={(e) => updateSettings({ ...settings, companyProfile: { ...settings.companyProfile, logoUrl: e.target.value } })}
+                          placeholder="https://.../logo.png"
+                          className="w-full bg-deep/50 border border-white/5 rounded-2xl px-5 py-3 text-txt font-medium focus:border-brand/50 outline-none transition-all" />
+                      </div>
+
+                      {/* Address */}
+                      <div className="group">
+                        <label className="text-[10px] uppercase font-black text-txt-muted tracking-[0.2em] mb-2.5 block group-focus-within:text-brand transition-colors">
+                          Dirección
+                        </label>
+                        <input type="text" value={settings.companyProfile?.address || ''}
+                          onChange={(e) => updateSettings({ ...settings, companyProfile: { ...settings.companyProfile, address: e.target.value } })}
+                          className="w-full bg-deep/50 border border-white/5 rounded-2xl px-5 py-3 text-txt font-medium focus:border-brand/50 outline-none transition-all" />
+                      </div>
+
+                      {/* Phone */}
+                      <div className="group">
+                        <label className="text-[10px] uppercase font-black text-txt-muted tracking-[0.2em] mb-2.5 block group-focus-within:text-brand transition-colors">
+                          Teléfono
+                        </label>
+                        <input type="text" value={settings.companyProfile?.phone || ''}
+                          onChange={(e) => updateSettings({ ...settings, companyProfile: { ...settings.companyProfile, phone: e.target.value } })}
+                          className="w-full bg-deep/50 border border-white/5 rounded-2xl px-5 py-3 text-txt font-medium focus:border-brand/50 outline-none transition-all" />
+                      </div>
+
+                      {/* Email */}
+                      <div className="group">
+                        <label className="text-[10px] uppercase font-black text-txt-muted tracking-[0.2em] mb-2.5 block group-focus-within:text-brand transition-colors">
+                          Correo Electrónico
+                        </label>
+                        <input type="text" value={settings.companyProfile?.email || ''}
+                          onChange={(e) => updateSettings({ ...settings, companyProfile: { ...settings.companyProfile, email: e.target.value } })}
+                          className="w-full bg-deep/50 border border-white/5 rounded-2xl px-5 py-3 text-txt font-medium focus:border-brand/50 outline-none transition-all" />
+                      </div>
+                      
+                      {/* Footer Legal */}
+                      <div className="group lg:col-span-3">
+                        <label className="text-[10px] uppercase font-black text-txt-muted tracking-[0.2em] mb-2.5 block group-focus-within:text-brand transition-colors">
+                          Nota de Pie de Página (Legal)
+                        </label>
+                        <input type="text" value={settings.companyProfile?.footerText || ''}
+                          onChange={(e) => updateSettings({ ...settings, companyProfile: { ...settings.companyProfile, footerText: e.target.value } })}
+                          className="w-full bg-deep/50 border border-white/5 rounded-2xl px-5 py-3 text-txt font-medium focus:border-brand/50 outline-none transition-all" />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <motion.div className="card space-y-8">
