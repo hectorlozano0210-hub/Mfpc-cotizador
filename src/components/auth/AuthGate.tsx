@@ -29,7 +29,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
       if (savedKey) {
         try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/verify`, {
+          const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://mfpc-cotizador.onrender.com'}/api/auth/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ licenseKey: savedKey, deviceId, appName: 'Cotizador Pro' })
@@ -61,7 +61,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     const deviceId = generateDeviceId();
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/verify`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://mfpc-cotizador.onrender.com'}/api/auth/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ licenseKey, deviceId, appName: 'Cotizador Pro' })
