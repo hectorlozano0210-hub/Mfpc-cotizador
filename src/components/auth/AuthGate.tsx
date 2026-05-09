@@ -73,7 +73,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
         localStorage.setItem('mfx_license_key', licenseKey);
         setIsAuthenticated(true);
       } else {
-        setError(data.message || 'Licencia inválida.');
+        setError(data.message || data.error || 'Licencia inválida.');
       }
     } catch (err) {
       setError('Error de conexión con el servidor maestro.');
