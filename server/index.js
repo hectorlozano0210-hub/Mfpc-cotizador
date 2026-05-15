@@ -78,6 +78,20 @@ app.get('/api/migrate', async (req, res) => {
       logs.push('Licenses table creation failed: ' + e.message);
     }
 
+    try {
+      await connection.query('ALTER TABLE projects ADD COLUMN dian_invoice_number VARCHAR(50) NULL;');
+      logs.push('Added dian_invoice_number column');
+    } catch (e) {
+      logs.push('dian_invoice_number failed or exists: ' + e.message);
+    }
+
+    try {
+      await connection.query('ALTER TABLE projects ADD COLUMN survey_reference VARCHAR(50) NULL;');
+      logs.push('Added survey_reference column');
+    } catch (e) {
+      logs.push('survey_reference failed or exists: ' + e.message);
+    }
+
     connection.release();
     res.json({ status: 'ok', logs });
   } catch (error) {
@@ -228,7 +242,9 @@ app.get('/api/projects', async (req, res) => {
         status: p.status,
         difficultyConfig: p.difficulty_config ? JSON.parse(p.difficulty_config) : null,
         signature: p.signature,
-        total: parseFloat(p.total),
+        dianInvoiceNumber: p.dian_invoice_number,
+        surveyReference: p.survey_reference,
+        total: p.total,
         createdAt: p.created_at,
         updatedAt: p.updated_at,
         // Map child tables back to camelCase
@@ -248,16 +264,16 @@ app.post('/api/projects', async (req, res) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
-    const { id, reference, clientId, date, time, status, difficultyConfig, signature, total, items, resources, activities } = req.body;
+    const { id, reference, clientId, date, time, status, difficultyConfig, signature, total, items, resources, activities, dianInvoiceNumber, surveyReference } = req.body;
     
     // 1. Upsert Project
     const safeDiffConfig = difficultyConfig ? JSON.stringify(difficultyConfig) : null;
     await connection.query(
-      `INSERT INTO projects (id, reference, client_id, date, time, status, difficulty_config, signature, total) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE reference=?, client_id=?, date=?, time=?, status=?, difficulty_config=?, signature=?, total=?`,
-      [id, reference || '', clientId || null, date || '', time || '', status || 'survey', safeDiffConfig, signature || null, total || 0,
-       reference || '', clientId || null, date || '', time || '', status || 'survey', safeDiffConfig, signature || null, total || 0]
+      `INSERT INTO projects (id, reference, client_id, date, time, status, difficulty_config, signature, total, dian_invoice_number, survey_reference) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE reference=?, client_id=?, date=?, time=?, status=?, difficulty_config=?, signature=?, total=?, dian_invoice_number=?, survey_reference=?`,
+      [id, reference || '', clientId || null, date || '', time || '', status || 'survey', safeDiffConfig, signature || null, total || 0, dianInvoiceNumber || null, surveyReference || null,
+       reference || '', clientId || null, date || '', time || '', status || 'survey', safeDiffConfig, signature || null, total || 0, dianInvoiceNumber || null, surveyReference || null]
     );
 
     // 2. Sync Items (Delete old, insert new)

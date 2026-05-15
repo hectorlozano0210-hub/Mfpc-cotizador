@@ -51,6 +51,20 @@ async function migrate() {
     `);
     console.log('Ensured licenses table exists');
 
+    try {
+        await pool.query('ALTER TABLE projects ADD COLUMN dian_invoice_number VARCHAR(50) NULL;');
+        console.log('Added dian_invoice_number to projects');
+    } catch (e) {
+        if (e.code !== 'ER_DUP_FIELDNAME') console.error('Migration error (dian):', e.message);
+    }
+
+    try {
+        await pool.query('ALTER TABLE projects ADD COLUMN survey_reference VARCHAR(50) NULL;');
+        console.log('Added survey_reference to projects');
+    } catch (e) {
+        if (e.code !== 'ER_DUP_FIELDNAME') console.error('Migration error (survey_ref):', e.message);
+    }
+
     console.log('Migration completed successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

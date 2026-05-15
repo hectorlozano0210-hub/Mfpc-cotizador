@@ -180,6 +180,16 @@ export const DataStore = {
     return `${prefix}-${count.toString().padStart(3, '0')}`;
   },
 
+  searchProjects: (query: string, status?: ProjectStatus): Project[] => {
+    const projects = DataStore.getProjects();
+    const q = query.toLowerCase();
+    return projects.filter(p => {
+      const matchQuery = p.reference.toLowerCase().includes(q) || p.client.name.toLowerCase().includes(q);
+      const matchStatus = status ? p.status === status : true;
+      return matchQuery && matchStatus;
+    });
+  },
+
   // --- Dashboard Stats ---
   getDashboardStats: (): DashboardStats => {
     const projects = DataStore.getProjects();

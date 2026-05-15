@@ -87,6 +87,8 @@ export interface Project {
   activities: ActivityLog[];
   difficultyConfig: DifficultyConfig;
   signature?: string; // Client global signature
+  dianInvoiceNumber?: string;
+  surveyReference?: string;
   total: number;
   createdAt: string;
   updatedAt: string;

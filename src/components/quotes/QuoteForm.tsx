@@ -54,7 +54,9 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
     scaffolding: initialProject?.difficultyConfig.scaffolding || false,
     ladder: initialProject?.difficultyConfig.ladder || false,
     context: initialProject?.difficultyConfig.context || '',
-    reference: initialProject?.reference || DataStore.getNextReference('COT')
+    reference: initialProject?.reference || DataStore.getNextReference('COT'),
+    dianInvoiceNumber: initialProject?.dianInvoiceNumber || '',
+    surveyReference: initialProject?.surveyReference || ''
   });
 
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -86,28 +88,48 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
     }
     const recognition = new SpeechRecognition();
     recognition.lang = 'es-CO';
-    recognition.interimResults = false;
+    recognition.interimResults = true;
+    recognition.continuous = true;
     
+    let silenceTimer: any = null;
+
     recognition.onstart = () => setDictatingId(id);
     
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      if (type === 'item') {
-        setItems(prev => prev.map(i => {
-          if (i.id === id) {
-            const newDesc = (i.description ? i.description + ' ' : '') + transcript;
-            return { ...i, description: newDesc, tags: autoTag(newDesc) };
-          }
-          return i;
-        }));
-      } else {
-        setActivities(prev => prev.map(a => {
-          if (a.id === id) {
-            const newDesc = (a.description ? a.description + ' ' : '') + transcript;
-            return { ...a, description: newDesc, tags: autoTag(newDesc) };
-          }
-          return a;
-        }));
+      clearTimeout(silenceTimer);
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0].transcript)
+        .join('');
+
+      // Auto-finalize after 3 seconds of silence
+      silenceTimer = setTimeout(() => recognition.stop(), 3000);
+
+      const processText = (text: string) => {
+        let cleanText = text.trim();
+        const needsAppend = cleanText.toLowerCase().includes('sumar');
+        cleanText = cleanText.replace(/sumar/gi, '').trim();
+
+        if (type === 'item') {
+          setItems(prev => prev.map(i => {
+            if (i.id === id) {
+              const newDesc = needsAppend ? (i.description ? i.description + ' ' : '') + cleanText : cleanText;
+              return { ...i, description: newDesc, tags: autoTag(newDesc) };
+            }
+            return i;
+          }));
+        } else {
+          setActivities(prev => prev.map(a => {
+            if (a.id === id) {
+              const newDesc = needsAppend ? (a.description ? a.description + ' ' : '') + cleanText : cleanText;
+              return { ...a, description: newDesc, tags: autoTag(newDesc) };
+            }
+            return a;
+          }));
+        }
+      };
+
+      if (event.results[event.results.length - 1].isFinal) {
+        processText(transcript);
       }
     };
     
@@ -138,61 +160,106 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
       const descLower = description.toLowerCase();
       const ctxLower = projectData.context?.toLowerCase() || '';
       
-      let suggestions: string[] = [];
-      let baseModifier = '';
+      // ─── Smart Quantity Summation ───
+      const numberMatches = description.match(/\d+/g) || [];
+      const totalQty = numberMatches.reduce((acc, curr) => acc + parseInt(curr), 0) || 1;
       
-      // ─── Local Context Detection (Smarter Analysis) ───
-      const hasHeight = descLower.includes('altura') || descLower.includes('metros') && (parseInt(descLower.match(/(\d+)\s*metros/)?.[1] || '0') >= 3) || ctxLower.includes('altura') || height === 'high';
-      const isComplex = descLower.includes('industrial') || descLower.includes('centro comercial') || descLower.includes('tuberia') || descLower.includes('emt') || descLower.includes('canalizacion') || ctxLower.includes('tuberia') || infra === 'industrial';
-      const isLongDistance = descLower.includes('distancia') || (parseInt(descLower.match(/(\d+)\s*metros/)?.[1] || '0') > 50);
+      // ─── Local Context Detection ───
+      const hasHeight = descLower.includes('altura') || descLower.includes('metros') || height === 'high';
+      const isComplex = descLower.includes('industrial') || descLower.includes('emt') || descLower.includes('tuber') || infra === 'industrial';
+      const isLongDistance = descLower.includes('distancia') || descLower.includes('lejos') || descLower.includes('metros');
 
-      if (hasHeight) baseModifier += ' (recargo +30% altura)';
-      if (isComplex) baseModifier += ' (recargo +30% infra. compleja)';
-      if (isLongDistance) baseModifier += ' (recargo distancia extendida)';
+      let narrative = "¡Hola! He analizado tu descripción detalladamente. ";
+      let questions = [];
 
-      // ─── Humanized Narrative Generation ───
-      const heightVal = descLower.match(/(\d+)\s*metros/)?.[1] || (hasHeight ? "3+" : null);
-      const qtyVal = descLower.match(/(\d+)\s*(c[aá]maras|unidades|puntos|pcs|computadores|tomas|sensores)/)?.[1] || "1";
-      
-      let narrative = "¡Hola! He analizado tu descripción. ";
-      
-      if (/(cctv|c[aá]mara)/i.test(descLower)) {
-        narrative += `Veo que se trata de la instalación de ${qtyVal} cámara(s). `;
-        if (hasHeight) narrative += `Al ser un trabajo a una altura de ${heightVal} metros, el riesgo aumenta el valor base en un 30%. `;
-        if (isComplex) narrative += `La infraestructura (como tubería EMT) también añade un recargo por complejidad. `;
-        
-        const unitMin = 85000 * (hasHeight ? 1.3 : 1) * (isComplex ? 1.3 : 1);
-        const unitMax = 135000 * (hasHeight ? 1.3 : 1) * (isComplex ? 1.3 : 1);
-        
-        narrative += `\n\nEn el mercado colombiano actual, este trabajo se cotiza entre $${unitMin.toLocaleString()} y $${unitMax.toLocaleString()} por unidad. `;
-        if (parseInt(qtyVal) > 1) {
-          narrative += `Para el total de los ${qtyVal} puntos, el rango sugerido es de $${(unitMin * parseInt(qtyVal)).toLocaleString()} a $${(unitMax * parseInt(qtyVal)).toLocaleString()}.`;
-        }
+      // ─── Dynamic Price Logic (Extended Categories) ───
+      if (/(cctv|c[aá]mara|dvr|nvr)/i.test(descLower)) {
+        narrative += `Identifico un proyecto de **CCTV / Videovigilancia** con un total de **${totalQty} puntos/cámaras**. `;
+        const basePrice = 95000;
+        let modifier = 1;
+        if (hasHeight) { narrative += "Aplicamos recargo por altura (+30%). "; modifier += 0.3; }
+        if (isComplex) { narrative += "Incluimos complejidad por infraestructura (+20%). "; modifier += 0.2; }
+        const finalMin = basePrice * modifier * totalQty;
+        const finalMax = (basePrice + 50000) * modifier * totalQty;
+        narrative += `\n\nEl valor sugerido es de **$${finalMin.toLocaleString()} a $${finalMax.toLocaleString()}**. `;
+        if (!hasHeight) questions.push("¿A qué altura se instalarán las cámaras?");
+        questions.push("¿El cableado es exterior o interior?");
       } 
-      else if (/(port[aá]til|computador|pc)/i.test(descLower)) {
-        narrative += `Entiendo que es un servicio técnico de computación. `;
-        if (/(formateo|sistema)/i.test(descLower)) {
-          narrative += `Para formateo e instalación de software, el precio promedio es de $80.000 a $120.000. `;
-        } else {
-          narrative += `Un mantenimiento preventivo físico suele estar entre $60.000 y $90.000 en Colombia. `;
+      else if (/(alarma|sensor|sirena|panel|biom[eé]trico|acceso)/i.test(descLower)) {
+        narrative += `Detecto instalación de **Sistemas de Seguridad / Alarma** (total **${totalQty} dispositivos**). `;
+        const base = 85000;
+        narrative += `El rango sugerido es de **$${(base * totalQty).toLocaleString()} a $${((base + 60000) * totalQty).toLocaleString()}**. `;
+        questions.push("¿El sistema es cableado o inalámbrico?");
+        questions.push("¿Se requiere configuración de monitoreo remoto en celulares?");
+      }
+      else if (/(red|wifi|inal[aá]mbrica|router|ap|access point|extensor)/i.test(descLower)) {
+        const isWireless = /(wifi|inal[aá]mbrica|inalambrica)/i.test(descLower);
+        narrative += `Se identifica un servicio de **Redes ${isWireless ? 'Inalámbricas (Wi-Fi)' : 'Alámbricas (Estructuradas)'}**. `;
+        const base = isWireless ? 70000 : 95000;
+        narrative += `Estimación para **${totalQty} punto(s)**: **$${(base * totalQty).toLocaleString()} a $${((base + 50000) * totalQty).toLocaleString()}**. `;
+        if (isWireless) questions.push("¿Cuántos muros o pisos debe atravesar la señal?");
+        else questions.push("¿El cableado es categoría 5e, 6 o 6A?");
+      }
+      else if (/(impresora|plotter|escaner)/i.test(descLower)) {
+        narrative += `Servicio técnico para **${totalQty} Impresora(s)**. `;
+        const base = descLower.includes('cabezal') || descLower.includes('mantenimiento') ? 85000 : 65000;
+        narrative += `El valor promedio es de **$${(base * totalQty).toLocaleString()} a $${((base + 45000) * totalQty).toLocaleString()}**. `;
+        questions.push("¿Es una impresora láser, de tinta continua o matricial?");
+        questions.push("¿Requiere cambio de repuestos o solo mantenimiento preventivo?");
+      }
+      else if (/(port[aá]til|computador|pc|laptop|servidor)/i.test(descLower)) {
+        narrative += `Soporte técnico para **${totalQty} Computador(es)**. `;
+        const base = descLower.includes('formate') ? 110000 : 80000;
+        narrative += `El rango estimado es de **$${(base * totalQty).toLocaleString()} a $${((base + 50000) * totalQty).toLocaleString()}**. `;
+        if (!descLower.includes('disco') && !descLower.includes('ssd')) questions.push("¿Se contempla actualización a disco sólido (SSD)?");
+      }
+      else if (/(el[eé]ctrico|toma|breaker|luz|l[aá]mpara|energ[ií]a|acometida)/i.test(descLower)) {
+        narrative += `Se identifica una labor de **Instalaciones Eléctricas** para **${totalQty} punto(s)**. `;
+        const base = 55000;
+        let modifier = 1;
+        if (hasHeight) modifier += 0.3;
+        narrative += `El valor sugerido es de **$${(base * modifier * totalQty).toLocaleString()} a $${((base + 40000) * modifier * totalQty).toLocaleString()}**. `;
+        questions.push("¿La red es monofásica, bifásica o trifásica?");
+        questions.push("¿Incluye certificación RETIE?");
+      }
+      else if (/(hosting|dominio|web|p[aá]gina|sitio web|desarrollo|software)/i.test(descLower)) {
+        narrative += `Detecto un servicio de **Tecnología Web / Desarrollo**. `;
+        let minPrice = 0;
+        let maxPrice = 0;
+        
+        if (descLower.includes('dominio')) {
+          minPrice += 50000; maxPrice += 120000;
         }
-      }
-      else if (/(energ[ií]a|el[eé]ctric|toma)/i.test(descLower)) {
-        narrative += `Se identifica una labor eléctrica. `;
-        const unitMin = 45000 * (hasHeight ? 1.3 : 1);
-        const unitMax = 75000 * (hasHeight ? 1.3 : 1);
-        narrative += `El punto eléctrico se cobra usualmente entre $${unitMin.toLocaleString()} y $${unitMax.toLocaleString()}.`;
-      }
-      else if (/(red|wifi|datos)/i.test(descLower)) {
-        narrative += `Es una labor de redes de datos. `;
-        narrative += `La instalación de un punto de red con certificación básica oscila entre $70.000 y $110.000 COP.`;
+        if (descLower.includes('hosting') || descLower.includes('alojamiento')) {
+          minPrice += 150000; maxPrice += 400000;
+        }
+        if (descLower.includes('diseño') || descLower.includes('página') || descLower.includes('web')) {
+          minPrice += 800000; maxPrice += 2500000;
+        }
+        
+        // Fallback si solo dice "desarrollo" o "software" sin especificar
+        if (minPrice === 0) {
+          minPrice = 500000; maxPrice = 3000000;
+        }
+        
+        narrative += `El valor estimado (pago anual para hosting/dominio, o único para diseño) es de **$${minPrice.toLocaleString()} a $${maxPrice.toLocaleString()} COP**. `;
+        questions.push("¿El servicio de Hosting incluye cuentas de correo corporativo?");
+        questions.push("¿Se requiere diseño web a la medida (WordPress, React) o solo el espacio en servidor?");
       }
       else {
-        narrative += `Parece ser una visita técnica o soporte general. `;
-        narrative += `El valor base por hora técnica o visita en Colombia está entre $50.000 y $90.000 COP.`;
+        narrative += `He analizado la actividad técnica de **${totalQty} unidad(es)**. `;
+        const base = 70000;
+        narrative += `El promedio sugerido es de **$${(base * totalQty).toLocaleString()} a $${((base + 40000) * totalQty).toLocaleString()}**. `;
+        questions.push("¿Podrías darme más detalles sobre el tipo de labor técnica?");
       }
 
-      narrative += "\n\n¿Deseas que ajustemos algún valor específico según tu criterio comercial?";
+      // Add Questions Section
+      if (questions.length > 0) {
+        narrative += "\n\n**Para ser más exacto, ¿podrías aclararme:**";
+        questions.forEach(q => narrative += `\n• ${q}`);
+      }
+
+      narrative += "\n\n¿Deseas que ajustemos el presupuesto con esta información?";
       
       setAiSuggestion({ id, message: narrative });
       setAnalyzingId(null);
@@ -294,6 +361,8 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
             helpers: projectData.helpers
         },
         signature: signature || undefined,
+        dianInvoiceNumber: projectData.dianInvoiceNumber,
+        surveyReference: projectData.surveyReference,
         total: totals.grand,
         createdAt: initialProject?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -303,27 +372,47 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
     if (onClose) onClose();
   };
 
-  const handleSearch = (q: string) => {
+  const handleImportSurvey = (s: Project) => {
+    setProjectData({
+      ...projectData,
+      clientId: s.clientId,
+      client: s.client.name,
+      contact: s.client.contact,
+      address: s.client.address,
+      phone: s.client.phone,
+      context: s.difficultyConfig.context,
+      surveyReference: s.reference
+    });
+    setItems(s.items);
+    setResources(s.resources);
+    setActivities(s.activities);
+    setHeight(s.difficultyConfig.height);
+    setInfra(s.difficultyConfig.infrastructure);
+    setPhase('quoted');
+    setShowResults(false);
+  };
+
+  const handleSearch = async (q: string) => {
     setProjectData({ ...projectData, client: q });
     if (q.length > 2) {
-      const results = DataStore.searchClients(q);
-      setSearchResults(results);
+      // Search clients
+      const clients = DataStore.searchClients(q);
+      // Search existing surveys
+      const surveys = await DataStore.searchProjects(q, 'survey');
+      
+      setSearchResults([...clients.map(c => ({ ...c, type: 'client' })), ...surveys.map(s => ({ ...s, type: 'survey' }))]);
       setShowResults(true);
     } else {
       setShowResults(false);
     }
   };
 
-  const handleSelectClient = (c: any) => {
-    setProjectData({
-      ...projectData,
-      clientId: c.id,
-      client: c.name,
-      contact: c.contact,
-      address: c.address,
-      phone: c.phone
-    });
-    setShowResults(false);
+  const handleSelectResult = (r: any) => {
+    if (r.type === 'survey') {
+      handleImportSurvey(r);
+    } else {
+      handleSelectClient(r);
+    }
   };
 
   return (
@@ -417,12 +506,19 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                                 exit={{ opacity: 0, y: -10 }}
                                 className="absolute top-full left-0 right-0 z-50 mt-2 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden"
                             >
-                                {searchResults.map((c: any) => (
-                                    <button key={c.id} onClick={() => handleSelectClient(c)}
-                                        className="w-full px-4 py-3 text-left hover:bg-elevated transition-colors border-b border-border last:border-0"
+                                {searchResults.map((r: any) => (
+                                    <button key={r.id} onClick={() => handleSelectResult(r)}
+                                        className="w-full px-4 py-3 text-left hover:bg-elevated transition-colors border-b border-border last:border-0 flex justify-between items-center"
                                     >
-                                        <p className="font-bold text-sm text-txt">{c.name}</p>
-                                        <p className="text-[10px] text-txt-muted">{c.contact} · {c.address}</p>
+                                        <div>
+                                          <p className="font-bold text-sm text-txt">{r.type === 'survey' ? r.client.name : r.name}</p>
+                                          <p className="text-[10px] text-txt-muted">
+                                            {r.type === 'survey' ? `Levantamiento: ${r.reference}` : `${r.contact} · ${r.address}`}
+                                          </p>
+                                        </div>
+                                        {r.type === 'survey' && (
+                                          <span className="badge badge-blue text-[8px] font-black uppercase">Importar</span>
+                                        )}
                                     </button>
                                 ))}
                             </motion.div>
@@ -683,9 +779,8 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
               </section>
             </div>
 
-          {/* ACTIVITY LOG (in_progress + completed) */}
-          {(phase === 'in_progress' || phase === 'completed') && (
-            <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card border-cyan/20 bg-cyan/5">
+          {/* ACTIVITY LOG (Visible en todas las fases) */}
+          <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card border-cyan/20 bg-cyan/5 lg:col-span-2">
               <div className="flex justify-between items-center mb-5">
                 <h3 className="text-[10px] uppercase font-bold text-cyan flex items-center gap-2 tracking-widest">
                   <Calendar size={14} /> Bitácora Técnica
@@ -893,7 +988,6 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                 ))}
               </div>
             </motion.section>
-          )}
         </div>
 
         {/* ─── SUMMARY SIDEBAR ─── */}
@@ -935,6 +1029,20 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                 </div>
                 </div>
             </div>
+
+            {/* DIAN Invoice (completed only) */}
+            {phase === 'completed' && (
+              <div className="space-y-2 mb-6">
+                <label className="text-[10px] font-black text-brand-light uppercase tracking-widest ml-1">Factura Electrónica (DIAN)</label>
+                <input 
+                  type="text" 
+                  value={projectData.dianInvoiceNumber}
+                  onChange={(e) => setProjectData({ ...projectData, dianInvoiceNumber: e.target.value })}
+                  placeholder="Ej: SETT123456"
+                  className="w-full bg-deep border border-brand/20 rounded-2xl px-5 py-4 text-sm font-bold text-white outline-none focus:border-brand transition-all shadow-inner"
+                />
+              </div>
+            )}
 
             {/* Signature (completed only) */}
             {phase === 'completed' && (
