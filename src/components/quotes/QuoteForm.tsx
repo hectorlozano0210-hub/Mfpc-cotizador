@@ -1079,6 +1079,34 @@ export const QuoteForm = ({ settings, initialProject, onClose }: QuoteFormProps)
                 <MessageCircle size={20} /> WhatsApp
               </motion.button>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  import('../../utils/pdfGenerator').then(({ generatePDF }) => {
+                    const fullProject = {
+                      id: initialProject?.id || '',
+                      reference: projectData.reference,
+                      clientId: projectData.clientId,
+                      client: {
+                        name: projectData.client,
+                        contact: projectData.contact,
+                        address: projectData.address,
+                        phone: projectData.phone
+                      },
+                      date: projectData.date,
+                      time: projectData.time,
+                      status: phase,
+                      items,
+                      resources,
+                      activities,
+                      difficultyConfig: { height, infrastructure: infra, scaffolding: projectData.scaffolding, ladder: projectData.ladder, helpers: projectData.helpers },
+                      signature: signature || undefined,
+                      dianInvoiceNumber: projectData.dianInvoiceNumber,
+                      total: totals.grand,
+                      createdAt: initialProject?.createdAt || new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    };
+                    generatePDF(fullProject as any);
+                  });
+                }}
                 className="w-full py-4 bg-elevated hover:bg-surface text-txt rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-white/5">
                 <FileDown size={20} /> Descargar PDF
               </motion.button>
